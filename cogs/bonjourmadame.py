@@ -34,6 +34,8 @@ async def latest_madame():
 
 
 class BonjourMadame(commands.Cog):
+    """Cog for the loop fetching BonjourMadame"""
+
     def __init__(self, bot):
         self.bot = bot
         self.bonjour_madame.start()  # pylint: disable=no-member

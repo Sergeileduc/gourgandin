@@ -62,6 +62,8 @@ async def on_ready():
     bot.guild = bot.get_guild(GUILD_ID)  # se lier au serveur à partir de l'ID
     bot.nsfw_channel = discord.utils.get(bot.guild.text_channels, name='nsfw-bot')
     # bot.nsfw_channel = discord.utils.get(bot.guild.text_channels, name='test-nsfw')
+    bot.nsfw_channel_manual = discord.utils.get(bot.guild.text_channels, name='nsfw-manuel')
+    # bot.nsfw_channel_manual = discord.utils.get(bot.guild.text_channels, name='test-manuel')
     logging.info('------')
     await bot.tree.sync()
 

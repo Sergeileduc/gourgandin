@@ -29,9 +29,27 @@ REDDIT_AGENT = os.getenv("REDDIT_AGENT")
 class RedditBabes(commands.Cog):
     """Cog to get hourly babes from reddit and post them."""
 
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.babes.start()  # pylint: disable=no-member
+
+    @commands.Cog.listener()
+    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
+        """Send reddit in another channel on reaction."""
+
+        if payload.channel_id != self.bot.nsfw_channel.id:
+            return
+
+        message: discord.Message = await self.bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
+        author = payload.member.display_name
+        # we fetch previous messages, to get the message just before the image
+        messages = [mess async for mess in message.channel.history(limit=2, before=message)]
+        # the previous message shoud be :
+        desc_message: discord.Message = messages[0]
+        # sending both messages
+        await self.bot.nsfw_channel_manual.send(content=f"{author} vous a partagé ceci :",
+                                                embed=desc_message.embeds[0])
+        await self.bot.nsfw_channel_manual.send(message.content)
 
     @tasks.loop(hours=1)  # checks the babes subreddit every hour
     async def babes(self):
@@ -39,14 +57,14 @@ class RedditBabes(commands.Cog):
         # allready posted babes list
         logger.info("Entering hourly task.")
         nsfw_channel_history = [mess async for mess in self.bot.nsfw_channel.history(limit=500)]  # noqa: E501
-        print(f"{nsfw_channel_history=}")
+        # print(f"{nsfw_channel_history=}")
         last_bot_messages = [message.content
                              for message in nsfw_channel_history
                              if message.author == self.bot.user]
-        print("----------------------------------------------------------------")
-        print(len(last_bot_messages))
-        print(last_bot_messages)
-        print("----------------------------------------------------------------")
+        # print("----------------------------------------------------------------")
+        # print(len(last_bot_messages))
+        # print(last_bot_messages)
+        # print("----------------------------------------------------------------")
         logger.info("Messages fetched.")
         # Reddit client
         reddit = asyncpraw.Reddit(client_id=REDDIT_ID,
@@ -73,9 +91,9 @@ class RedditBabes(commands.Cog):
                 if submission.stickied:
                     continue
                 url = submission.url
-                print(url)
+                # print(url)
                 if url not in last_bot_messages:
-                    print("Not in last_bot_messages, sending")
+                    # print("Not in last_bot_messages, sending")
                     # TODO: I let some codes, if we want to change, with only sends
                     # or with a full embed (with the set_image thing)
                     # we can decide later.
@@ -85,7 +103,7 @@ class RedditBabes(commands.Cog):
                                           url=f"https://www.reddit.com{submission.permalink}",
                                           description=sub
                                           )
-                    # embed.set_image(url=url)
+                    # embed.set_image(url=url)  # this of send(url) line
                     await self.bot.nsfw_channel.send(embed=embed)
                     await self.bot.nsfw_channel.send(url)
                 else:
