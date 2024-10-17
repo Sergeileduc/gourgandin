@@ -1,0 +1,10 @@
+discord.py == 2.4.0
+python-dotenv>=1
+beautifulsoup4
+pdfkit
+aiohttp
+google-api-python-client
+dateparser
+requests-html
+lxml_html_clean
+asyncpraw
