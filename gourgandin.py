@@ -23,6 +23,8 @@ logging.basicConfig(level=logging.INFO)
 # logging.basicConfig(level=logging.DEBUG)
 
 PREFIX: str = '!'
+NSFW_BOT_CHANNEL: str = "nsfw-bot"
+NSFW_MANUAL_CHANNEL: str = "nsfw-manuel"
 
 # --debug option
 parser = argparse.ArgumentParser()
@@ -60,10 +62,10 @@ async def on_ready():
     logging.info(bot.user.name)
     logging.info(bot.user.id)
     bot.guild = bot.get_guild(GUILD_ID)  # se lier au serveur à partir de l'ID
-    bot.nsfw_channel = discord.utils.get(bot.guild.text_channels, name='nsfw-bot')
-    # bot.nsfw_channel = discord.utils.get(bot.guild.text_channels, name='test-nsfw')
-    bot.nsfw_channel_manual = discord.utils.get(bot.guild.text_channels, name='nsfw-manuel')
-    # bot.nsfw_channel_manual = discord.utils.get(bot.guild.text_channels, name='test-manuel')
+    # bot.nsfw_channel = discord.utils.get(bot.guild.text_channels, name='nsfw-bot')
+    bot.nsfw_channel = discord.utils.get(bot.guild.text_channels, name=NSFW_BOT_CHANNEL)
+    # bot.nsfw_channel_manual = discord.utils.get(bot.guild.text_channels, name='nsfw-manuel')
+    bot.nsfw_channel_manual = discord.utils.get(bot.guild.text_channels, name=NSFW_MANUAL_CHANNEL)
     logging.info('------')
     await bot.tree.sync()
 
