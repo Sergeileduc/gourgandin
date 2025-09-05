@@ -24,12 +24,15 @@ async def latest_madame():
     title = soup.select_one("header.post-header > h1 > a")
 
     title_txt, book, image_url = None, None, None
-    if title:  # TITLE
-        title_txt = title.text
-    if a := content.find('a', href=True):  # book is the link to the private book of the model
-        book: str = a['href']
-    if image := content.find('img', src=True):  # image URL
-        image_url: str = image['src'].split('?')[0]
+    try:
+        if title:  # TITLE
+            title_txt = title.text
+        if a := content.find('a', href=True):  # book is the link to the private book of the model
+            book: str = a['href']
+        if image := content.find('img', src=True):  # image URL
+            image_url: str = image['src'].split('?')[0]
+    except AttributeError as e:
+        logger.error("erreur Bonjour Madame %s", e)
     return image_url, title_txt, book
 
 
