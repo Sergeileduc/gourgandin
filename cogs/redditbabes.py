@@ -90,6 +90,8 @@ class RedditBabes(commands.Cog):
             async for submission in subreddit.new(limit=10):
                 if submission.stickied:
                     continue
+                if submission.removed_by_category == "deleted":
+                    continue
                 url = submission.url
                 # print(url)
                 if url not in last_bot_messages:
@@ -99,7 +101,7 @@ class RedditBabes(commands.Cog):
                     # we can decide later.
                     # await self.bot.nsfw_channel.send(submission.title)
                     # await self.bot.nsfw_channel.send(url)
-                    embed = discord.Embed(title=submission.title,
+                    embed = discord.Embed(title=submission.title[:256],
                                           url=f"https://www.reddit.com{submission.permalink}",
                                           description=sub
                                           )
