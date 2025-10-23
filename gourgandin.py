@@ -20,7 +20,6 @@ GUILD_ID: int = int(os.getenv("GUILD_ID"))
 
 # Logging
 logging.basicConfig(level=logging.INFO)
-# logging.basicConfig(level=logging.DEBUG)
 
 PREFIX: str = '!'
 NSFW_BOT_CHANNEL: str = "nsfw-bot"
@@ -35,6 +34,8 @@ if args.debug:
     logging.info("You are in debug mode.")
     logging.info("Prefix is now '?'")
     PREFIX = '?'
+    NSFW_BOT_CHANNEL: str = "test-bot"
+    logging.basicConfig(level=logging.DEBUG)
 
 
 # parameters for the bot
@@ -62,9 +63,7 @@ async def on_ready():
     logging.info(bot.user.name)
     logging.info(bot.user.id)
     bot.guild = bot.get_guild(GUILD_ID)  # se lier au serveur à partir de l'ID
-    # bot.nsfw_channel = discord.utils.get(bot.guild.text_channels, name='nsfw-bot')
     bot.nsfw_channel = discord.utils.get(bot.guild.text_channels, name=NSFW_BOT_CHANNEL)
-    # bot.nsfw_channel_manual = discord.utils.get(bot.guild.text_channels, name='nsfw-manuel')
     bot.nsfw_channel_manual = discord.utils.get(bot.guild.text_channels, name=NSFW_MANUAL_CHANNEL)
     logging.info('------')
     await bot.tree.sync()
