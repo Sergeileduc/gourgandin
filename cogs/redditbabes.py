@@ -11,6 +11,8 @@ import logging
 from pathlib import Path
 
 import asyncpraw  # pip install asyncpraw
+from asyncpraw.models import Submission
+
 import discord
 from discord.ext import commands, tasks
 
@@ -24,6 +26,23 @@ load_dotenv()
 REDDIT_ID = os.getenv("REDDIT_ID")
 REDDIT_SECRET = os.getenv("REDDIT_SECRET")
 REDDIT_AGENT = os.getenv("REDDIT_AGENT")
+
+
+def is_album(submission: Submission) -> bool:
+    """Check if the submission is an album of photos"""
+    if hasattr(submission, "media_metadata") and submission.media_metadata:
+        logger.debug("ok, hasattr media_data")
+        return True
+    else:
+        logger.debug("No, not album")
+        return False
+
+
+def get_first_image_from_album(submission: Submission) -> str:
+    "Get the first image in an album"
+    first_key = list(submission.media_metadata.keys())[0]
+    first_image_info = submission.media_metadata[first_key]
+    return first_image_info["s"]["u"]
 
 
 class RedditBabes(commands.Cog):
@@ -91,8 +110,16 @@ class RedditBabes(commands.Cog):
                 if submission.stickied:
                     continue
                 if submission.removed_by_category == "deleted":
+                    logger.info("continue because deleted : %s", submission)
                     continue
-                url = submission.url
+                if is_album(submission):
+                    logger.info("that's an album %s", submission)
+                    url = get_first_image_from_album(submission)
+                    logger.info("getting the first image for %s", submission)
+                else:
+                    logger.info("standard submission with one pic : %s", submission)
+                    url = submission.url
+
                 # print(url)
                 if url not in last_bot_messages:
                     # print("Not in last_bot_messages, sending")
