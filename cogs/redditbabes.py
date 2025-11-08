@@ -140,7 +140,6 @@ class RedditSubmissionInfo:
         self.subreddit_name = self.submission.subreddit.display_name
         self.title = self.submission.title
         self.author = str(self.submission.author)
-        self.subreddit_name = self.submission.subreddit.display_name
         self.is_album = hasattr(self.submission, "media_metadata") and bool(self.submission.media_metadata)
         self.image_url = None
         self.image_count = 0
