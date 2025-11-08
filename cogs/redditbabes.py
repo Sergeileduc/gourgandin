@@ -54,39 +54,6 @@ async def load_subreddits() -> list[str]:
         return []
 
 
-async def process_subreddit(sub: str, last_bot_messages: list[str], channel: discord.TextChannel, reddit: asyncpraw.Reddit, bot_user: discord.ClientUser) -> None:
-    """
-    Récupère les nouveaux posts d'un subreddit et les envoie dans le canal Discord si non déjà publiés.
-
-    Args:
-        sub (str): Le nom du subreddit à traiter.
-        last_bot_messages (list[str]): Liste des URLs déjà envoyées par le bot.
-        channel (discord.TextChannel): Le canal Discord cible.
-        reddit (asyncpraw.Reddit): Instance Reddit pour effectuer les requêtes.
-        bot_user (discord.ClientUser): L'utilisateur représentant le bot.
-    """
-    try:
-        subreddit = await reddit.subreddit(sub, fetch=True)
-        logger.info("Fetching subreddit: %s", sub)
-
-        async for submission in subreddit.new(limit=10):
-            if submission.stickied or submission.removed_by_category == "deleted":
-                continue
-
-            try:
-                sub_object = RedditSubmissionInfo(submission=submission)
-                if sub_object.image_url not in last_bot_messages:
-                    embed = sub_object.to_embed()
-                    await channel.send(embed=embed)
-                    await channel.send(sub_object.image_url)
-                else:
-                    logger.info("Déjà posté récemment, on skip : %s", sub_object.image_url)
-            except RedditException:
-                logger.warning("Erreur lors du traitement d'un post Reddit.")
-    except Exception as e:
-        logger.error(f"Erreur lors du traitement du subreddit {sub} : {e}")
-
-
 ########################
 
 
@@ -159,6 +126,63 @@ class RedditSubmissionInfo:
         return embed
 
 
+class RedditPoster:
+    """
+    Gère la récupération et la publication de contenus Reddit dans un canal Discord.
+
+    Cette classe encapsule les dépendances nécessaires pour publier des images issues de Reddit
+    dans un canal Discord. Elle permet de traiter plusieurs subreddits tout en évitant les doublons
+grâce à une mémoire des derniers messages envoyés par le bot.
+
+    Attributes:
+        reddit (asyncpraw.Reddit): Instance du client Reddit utilisée pour interroger les subreddits.
+        channel (discord.TextChannel): Canal Discord dans lequel les contenus seront publiés.
+        bot_user (discord.ClientUser): Représente le bot Discord, utilisé pour filtrer les messages déjà envoyés.
+        last_bot_messages (list[str]): Liste des contenus (généralement des URLs) déjà envoyés par le bot
+            dans le canal cible. Permet d’éviter de republier les mêmes images à chaque exécution.
+    """
+
+    def __init__(
+        self,
+        reddit: asyncpraw.Reddit,
+        channel: discord.TextChannel,
+        bot_user: discord.ClientUser,
+        last_bot_messages: list[str],
+    ):
+        self.reddit = reddit
+        self.channel = channel
+        self.bot_user = bot_user
+        self.last_bot_messages = last_bot_messages
+
+    async def process_subreddit(self, sub: str) -> None:
+        """
+        Récupère les nouveaux posts d'un subreddit et les envoie dans le canal Discord si non déjà publiés.
+
+        Args:
+            sub (str): Le nom du subreddit à traiter.
+        """
+        try:
+            subreddit = await self.reddit.subreddit(sub, fetch=True)
+            logger.info("Fetching subreddit: %s", sub)
+
+            async for submission in subreddit.new(limit=10):
+                if submission.stickied or submission.removed_by_category == "deleted":
+                    continue
+
+                try:
+                    sub_object = RedditSubmissionInfo(submission=submission)
+                    if sub_object.image_url not in self.last_bot_messages:
+                        embed = sub_object.to_embed()
+                        await self.channel.send(embed=embed)
+                        await self.channel.send(sub_object.image_url)
+                    else:
+                        logger.info("Déjà posté récemment, on skip : %s", sub_object.image_url)
+                except RedditException:
+                    logger.warning("Erreur lors du traitement d'un post Reddit.")
+        except Exception as e:
+            logger.error(f"Erreur lors du traitement du subreddit {sub} : {e}")
+
+
 class RedditException(Exception):
     def __init__(self, message: str, submission_id: str = None):
         self.submission_id = submission_id
@@ -212,6 +236,12 @@ class RedditBabes(commands.Cog):
 
         logger.info("Reddit ok.")
 
+        poster = RedditPoster(reddit=reddit,
+                              channel=self.bot.nsfw_channel,
+                              bot_user=self.bot.user,
+                              last_bot_messages=last_bot_messages,
+                              )
+
         # List of subreddits
         subreddits = await load_subreddits()
         if not subreddits:
@@ -219,7 +249,7 @@ class RedditBabes(commands.Cog):
 
         # Iterate on our subreddits
         for sub in subreddits:
-            await process_subreddit(sub, last_bot_messages, self.bot.nsfw_channel, reddit, self.bot.user)
+            await poster.process_subreddit(sub)
 
         await reddit.close()
         logger.info("Exiting hourly task.")
