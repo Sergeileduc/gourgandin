@@ -18,19 +18,13 @@ from asyncpraw.models import Submission
 import discord
 from discord.ext import commands, tasks
 
-from dotenv import load_dotenv
-
 from utils.tools import get_last_bot_messages
+
+from .reddit_client import get_reddit_client
+from .reddit_poster import RedditPoster
 
 
 logger = logging.getLogger(__name__)
-
-# Parse a .env file and then load all the variables found as environment variables.
-load_dotenv()
-
-REDDIT_ID = os.getenv("REDDIT_ID")
-REDDIT_SECRET = os.getenv("REDDIT_SECRET")
-REDDIT_AGENT = os.getenv("REDDIT_AGENT")
 
 MAX_TRY = 5
 HISTORY_LIMIT = 500
@@ -57,146 +51,16 @@ async def load_subreddits() -> list[str]:
 ########################
 
 
-@dataclass
-class RedditSubmissionInfo:
-    submission: Submission
-    post_url: str = field(init=False)
-    subreddit: str = field(init=False)
-    title: str = field(init=False)
-    author: str = field(init=False)
-    is_album: bool = field(init=False)
-    image_count: int = field(init=False)
-    image_url: Optional[str] = field(init=False)
-
-    def __post_init__(self):
-        self.post_url = self.submission.url
-        self.subreddit_name = self.submission.subreddit.display_name
-        self.title = self.submission.title
-        self.author = str(self.submission.author)
-        self.is_album = hasattr(self.submission, "media_metadata") and bool(self.submission.media_metadata)
-        self.image_url = None
-        self.image_count = 0
-        logger.debug(self.post_url)
-
-        if self.is_album:
-            logger.info("that's an album %s", self.post_url)
-            logger.info("getting the first image for %s", self.submission)
-            self._extract_album_info()
-        elif (self.submission.url.endswith((".jpg", ".jpeg", ".png", ".gif", ".webp"))
-              or "redgifs" in self.submission.url):
-            self.image_url = self.submission.url
-            self.image_count = 1
-            logger.info("standard submission with one pic : %s", self.submission)
-        else:
-            logger.error("something bad happened with picture for submission %s, we got this url %s", self.post_url, self.image_url)
-            raise RedditException("Impossible de trouver du contenu", self.submission.id)
-        logger.debug("image url : %s", self.image_url)
-
-    def _extract_album_info(self):
-        try:
-            items = self.submission.gallery_data.get("items", [])
-            if not isinstance(items, list) or not items:
-                raise RedditException("Aucune image trouvée dans l'album", self.submission.id)
-
-            first_media_id = items[0].get("media_id")
-            if not first_media_id:
-                raise RedditException("media_id manquant dans le premier item", self.submission.id)
-
-            image_info = self.submission.media_metadata.get(first_media_id, {})
-            self.image_url = image_info.get("s", {}).get("u")
-            if not self.image_url:
-                raise RedditException("URL de l'image introuvable dans les métadonnées", self.submission.id)
-
-            self.image_count = len(items)
-        except (AttributeError, TypeError, KeyError) as e:
-            raise RedditException(f"Erreur lors de l'extraction des images : {e}", self.submission.id)
-
-    def to_embed(self) -> discord.Embed:
-        embed = discord.Embed(
-            title=self.title[:256],
-            description=self.subreddit_name,
-            url=f"https://www.reddit.com{self.submission.permalink}"
-        )
-        if self.is_album:
-            embed.set_footer(text=f"Album de {self.image_count} images",
-                             icon_url="https://images.emojiterra.com/twitter/v13.1/512px/1f4d6.png")
-        # if self.image_url:
-        #     embed.set_image(url=self.image_url)
-        # embed.set_footer(text=f"Posté par u/{self.author}")
-        return embed
-
-
-class RedditPoster:
-    """
-    Gère la récupération et la publication de contenus Reddit dans un canal Discord.
-
-    Cette classe encapsule les dépendances nécessaires pour publier des images issues de Reddit
-    dans un canal Discord. Elle permet de traiter plusieurs subreddits tout en évitant les doublons
-grâce à une mémoire des derniers messages envoyés par le bot.
-
-    Attributes:
-        reddit (asyncpraw.Reddit): Instance du client Reddit utilisée pour interroger les subreddits.
-        channel (discord.TextChannel): Canal Discord dans lequel les contenus seront publiés.
-        bot_user (discord.ClientUser): Représente le bot Discord, utilisé pour filtrer les messages déjà envoyés.
-        last_bot_messages (list[str]): Liste des contenus (généralement des URLs) déjà envoyés par le bot
-            dans le canal cible. Permet d’éviter de republier les mêmes images à chaque exécution.
-    """
-
-    def __init__(
-        self,
-        reddit: asyncpraw.Reddit,
-        channel: discord.TextChannel,
-        bot_user: discord.ClientUser,
-        last_bot_messages: list[str],
-    ):
-        self.reddit = reddit
-        self.channel = channel
-        self.bot_user = bot_user
-        self.last_bot_messages = last_bot_messages
-
-    async def process_subreddit(self, sub: str) -> None:
-        """
-        Récupère les nouveaux posts d'un subreddit et les envoie dans le canal Discord si non déjà publiés.
-
-        Args:
-            sub (str): Le nom du subreddit à traiter.
-        """
-        try:
-            subreddit = await self.reddit.subreddit(sub, fetch=True)
-            logger.info("Fetching subreddit: %s", sub)
-
-            async for submission in subreddit.new(limit=10):
-                if submission.stickied or submission.removed_by_category == "deleted":
-                    continue
-
-                try:
-                    sub_object = RedditSubmissionInfo(submission=submission)
-                    if sub_object.image_url not in self.last_bot_messages:
-                        embed = sub_object.to_embed()
-                        await self.channel.send(embed=embed)
-                        await self.channel.send(sub_object.image_url)
-                    else:
-                        logger.info("Déjà posté récemment, on skip : %s", sub_object.image_url)
-                except RedditException:
-                    logger.warning("Erreur lors du traitement d'un post Reddit.")
-        except Exception as e:
-            logger.error(f"Erreur lors du traitement du subreddit {sub} : {e}")
-
-
-class RedditException(Exception):
-    def __init__(self, message: str, submission_id: str = None):
-        self.submission_id = submission_id
-        super().__init__(f"[RedditException] {message} (ID: {submission_id})" if submission_id else message)
-
-
-########################
-
-
 class RedditBabes(commands.Cog):
     """Cog to get hourly babes from reddit and post them."""
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self.reddit = get_reddit_client()  # depuis reddit_client.py
+        self.poster = RedditPoster(reddit=self.reddit,
+                                   channel=self.bot.nsfw_channel,
+                                   bot_user=self.bot.user,
+                                   )  # depuis reddit_poster.py
         self.babes.start()  # pylint: disable=no-member
 
     @commands.Cog.listener()
@@ -218,44 +82,22 @@ class RedditBabes(commands.Cog):
         await self.bot.nsfw_channel_manual.send(message.content)
 
     @tasks.loop(hours=1)  # checks the babes subreddit every hour
-    async def babes(self):
-        """Send babes from reddit."""
-        # allready posted babes list
+    async def babes(self) -> None:
+        """
+        Tâche périodique qui interroge les subreddits configurés et publie les nouveaux contenus dans le canal Discord.
+        """
         logger.info("Entering hourly task.")
-
-        # we try to ask discord for history, but it can fail. in case, return
-        last_bot_messages = await get_last_bot_messages(self.bot.nsfw_channel,
-                                                        self.bot.user,
-                                                        max_tries=MAX_TRY,
-                                                        history_limit=HISTORY_LIMIT)
-
-        if not last_bot_messages:
-            return
-
-        logger.info("Messages fetched.")
-        # Reddit client
-        reddit = asyncpraw.Reddit(client_id=REDDIT_ID,
-                                  client_secret=REDDIT_SECRET,
-                                  user_agent=REDDIT_AGENT)
-
-        logger.info("Reddit ok.")
-
-        poster = RedditPoster(reddit=reddit,
-                              channel=self.bot.nsfw_channel,
-                              bot_user=self.bot.user,
-                              last_bot_messages=last_bot_messages,
-                              )
-
-        # List of subreddits
         subreddits = await load_subreddits()
         if not subreddits:
+            logger.warning("Aucun subreddit à traiter.")
             return
 
-        # Iterate on our subreddits
         for sub in subreddits:
-            await poster.process_subreddit(sub)
+            try:
+                await self.poster.process_subreddit(sub)
+            except Exception as e:
+                logger.error("Erreur lors du traitement du subreddit %s : %s", sub, e)
 
-        await reddit.close()
         logger.info("Exiting hourly task.")
 
     @babes.before_loop
@@ -284,6 +126,15 @@ async def setup(bot):
 # main is for debugging purpose
 if __name__ == "__main__":
     import asyncio
+    from dotenv import load_dotenv
+    from .reddit_models import RedditSubmissionInfo
+
+    # Parse a .env file and then load all the variables found as environment variables.
+    load_dotenv()
+
+    REDDIT_ID = os.getenv("REDDIT_ID")
+    REDDIT_SECRET = os.getenv("REDDIT_SECRET")
+    REDDIT_AGENT = os.getenv("REDDIT_AGENT")
 
     logger.setLevel(logging.DEBUG)
     console_handler = logging.StreamHandler()
