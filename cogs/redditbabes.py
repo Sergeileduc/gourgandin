@@ -138,7 +138,14 @@ class RedditBabes(commands.Cog):
         """Send babes from reddit."""
         # allready posted babes list
         logger.info("Entering hourly task.")
-        nsfw_channel_history = [mess async for mess in self.bot.nsfw_channel.history(limit=500)]  # noqa: E501
+
+        # we try to ask discord for history, but it can fail. return if
+        try:
+            nsfw_channel_history = [mess async for mess in self.bot.nsfw_channel.history(limit=500)]  # noqa: E501
+        except discord.DiscordServerError as e:
+            logger.warning(f"Erreur Discord 503 lors de la récupération de l'historique : {e}")
+            return  # Quitte proprement, la tâche se relancera à la prochaine heure
+
         # print(f"{nsfw_channel_history=}")
         last_bot_messages = [message.content
                              for message in nsfw_channel_history
