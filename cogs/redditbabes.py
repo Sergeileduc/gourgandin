@@ -33,7 +33,7 @@ REDDIT_SECRET = os.getenv("REDDIT_SECRET")
 REDDIT_AGENT = os.getenv("REDDIT_AGENT")
 
 MAX_TRY = 5
-CHANNEL_HISTORY = 500
+HISTORY_LIMIT = 500
 
 ########################
 
@@ -224,7 +224,11 @@ class RedditBabes(commands.Cog):
         logger.info("Entering hourly task.")
 
         # we try to ask discord for history, but it can fail. in case, return
-        last_bot_messages = await get_last_bot_messages(self.bot.nsfw_channel, self.bot.user)
+        last_bot_messages = await get_last_bot_messages(self.bot.nsfw_channel,
+                                                        self.bot.user,
+                                                        max_tries=MAX_TRY,
+                                                        history_limit=HISTORY_LIMIT)
+
         if not last_bot_messages:
             return
 

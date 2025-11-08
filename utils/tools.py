@@ -11,8 +11,6 @@ from discord.utils import find as disc_find
 
 logger = logging.getLogger(__name__)
 
-MAX_TRIES = 5
-
 headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}  # noqa:E501
 
 
@@ -95,35 +93,67 @@ async def get_soup_xml(url: str) -> BeautifulSoup:
     return BeautifulSoup(r.text, 'xml')
 
 
-@backoff.on_exception(backoff.expo, discord.DiscordServerError, max_tries=MAX_TRIES)
-async def fetch_history(channel: discord.TextChannel) -> list[discord.Message]:
+# this function can be reused. it's not a bug if we define it in get_last_bot_messages again.
+# it's because of the decorator...
+@backoff.on_exception(backoff.expo, discord.DiscordServerError, max_tries=5)
+async def fetch_history(
+    channel: discord.TextChannel,
+    limit: int = 500
+) -> list[discord.Message]:
     """
-    Récupère l'historique des messages d'un canal Discord avec retry en cas d'erreur serveur.
+    Récupère l'historique des messages d'un canal Discord avec stratégie de retry en cas d'erreur serveur.
+
+    Cette fonction interroge l'historique d'un canal Discord et retourne les derniers messages,
+    jusqu'à une limite définie. Elle utilise un décorateur `backoff` pour réessayer automatiquement
+    en cas d'erreur `DiscordServerError`, avec un délai exponentiel entre les tentatives.
 
     Args:
-        channel (discord.TextChannel): Le canal Discord cible.
+        channel (discord.TextChannel): Le canal Discord à interroger.
+        limit (int, optional): Nombre maximum de messages à récupérer. Par défaut à 500.
 
     Returns:
-        list[discord.Message]: Liste des messages du canal.
+        list[discord.Message]: Liste des messages présents dans l'historique du canal.
     """
-    return [message async for message in channel.history(limit=500)]
+    return [message async for message in channel.history(limit=limit)]
 
 
-async def get_last_bot_messages(channel: discord.TextChannel, bot_user: discord.ClientUser) -> list[str]:
+# again : not a bug if fetch_history is defined inside.
+async def get_last_bot_messages(
+    channel: discord.TextChannel,
+    bot_user: discord.ClientUser,
+    max_tries: int = 5,
+    history_limit: int = 500
+) -> list[str]:
     """
-    Filtre les messages envoyés par le bot dans un canal Discord.
+    Récupère les messages récemment envoyés par le bot dans un canal Discord.
+
+    Cette fonction interroge l'historique d'un canal Discord pour extraire les messages
+    envoyés par le bot. Elle utilise une stratégie de retry exponentiel en cas d'erreur
+    serveur Discord (503), avec un nombre de tentatives et une profondeur d'historique
+    configurables.
 
     Args:
         channel (discord.TextChannel): Le canal Discord à analyser.
         bot_user (discord.ClientUser): L'utilisateur représentant le bot.
+        max_tries (int, optional): Nombre maximum de tentatives en cas d'erreur Discord.
+            Par défaut à 5.
+        history_limit (int, optional): Nombre maximum de messages à récupérer dans
+            l'historique du canal. Par défaut à 500.
 
     Returns:
-        list[str]: Contenus textuels des messages envoyés par le bot.
+        list[str]: Liste des contenus textuels des messages envoyés par le bot.
+                   Retourne une liste vide en cas d'échec.
     """
+    async def fetch_history() -> list[discord.Message]:
+        @backoff.on_exception(backoff.expo, discord.DiscordServerError, max_tries=max_tries)
+        async def inner() -> list[discord.Message]:
+            return [message async for message in channel.history(limit=history_limit)]
+        return await inner()
+
     try:
-        history = await fetch_history(channel)
+        history = await fetch_history()
     except discord.DiscordServerError as e:
-        logger.warning(f"Erreur Discord 503 : {e}")
+        logger.warning(f"Erreur Discord 503 lors de la récupération de l'historique : {e}")
         return []
 
     return [message.content for message in history if message.author == bot_user]
