@@ -1,0 +1,16 @@
+# requirements-dev.txt
+
+# Test runner
+pytest>=7.0
+
+# Support des fonctions async dans pytest
+pytest-asyncio>=0.21.0
+
+# Discord.py (version alignée avec ton projet)
+discord.py>=2.0.0
+
+# Pour les mocks asynchrones
+anyio>=3.7.0
+
+# Optionnel : couverture de tests
+pytest-cov>=4.0.0
