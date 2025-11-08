@@ -36,6 +36,22 @@ CHANNEL_HISTORY = 500
 ########################
 
 
+async def load_subreddits() -> list[str]:
+    """
+    Charge la liste des subreddits à parcourir depuis le fichier local `redditbabes.txt`.
+
+    Returns:
+        list[str]: Une liste de noms de subreddits. Retourne une liste vide si le fichier est introuvable.
+    """
+    try:
+        p = Path(__file__).parent / "redditbabes.txt"
+        with open(p, mode='r', encoding='utf-8') as f:
+            return f.read().splitlines()
+    except FileNotFoundError:
+        logger.error("Fichier redditbabes.txt introuvable.")
+        return []
+
+
 @backoff.on_exception(backoff.expo, discord.DiscordServerError, max_tries=MAX_TRY)
 async def fetch_history(channel):
     return [mess async for mess in channel.history(limit=CHANNEL_HISTORY)]
@@ -70,6 +86,40 @@ async def get_last_bot_messages(channel: discord.TextChannel, bot_user: discord.
         for message in nsfw_channel_history
         if message.author == bot_user
     ]
+
+
+async def process_subreddit(sub: str, last_bot_messages: list[str], channel: discord.TextChannel, reddit: asyncpraw.Reddit, bot_user: discord.ClientUser) -> None:
+    """
+    Récupère les nouveaux posts d'un subreddit et les envoie dans le canal Discord si non déjà publiés.
+
+    Args:
+        sub (str): Le nom du subreddit à traiter.
+        last_bot_messages (list[str]): Liste des URLs déjà envoyées par le bot.
+        channel (discord.TextChannel): Le canal Discord cible.
+        reddit (asyncpraw.Reddit): Instance Reddit pour effectuer les requêtes.
+        bot_user (discord.ClientUser): L'utilisateur représentant le bot.
+    """
+    try:
+        subreddit = await reddit.subreddit(sub, fetch=True)
+        logger.info("Fetching subreddit: %s", sub)
+
+        async for submission in subreddit.new(limit=10):
+            if submission.stickied or submission.removed_by_category == "deleted":
+                continue
+
+            try:
+                sub_object = RedditSubmissionInfo(submission=submission)
+                if sub_object.image_url not in last_bot_messages:
+                    embed = sub_object.to_embed()
+                    await channel.send(embed=embed)
+                    await channel.send(sub_object.image_url)
+                else:
+                    logger.info("Déjà posté récemment, on skip : %s", sub_object.image_url)
+            except RedditException:
+                logger.warning("Erreur lors du traitement d'un post Reddit.")
+    except Exception as e:
+        logger.error(f"Erreur lors du traitement du subreddit {sub} : {e}")
+
 
 ########################
 
@@ -198,42 +248,14 @@ class RedditBabes(commands.Cog):
         logger.info("Reddit ok.")
 
         # List of subreddits
-        try:
-            p = Path(__file__).parent / "redditbabes.txt"
-            with open(p, mode='r', encoding='utf-8') as f:
-                subreddits = f.read().splitlines()
-        except FileNotFoundError:
-            logger.error("cogs/redditbabes.txt is missing")
-            subreddits = []
+        subreddits = await load_subreddits()
+        if not subreddits:
+            return
 
         # Iterate on our subreddits
         for sub in subreddits:
-            subreddit = await reddit.subreddit(sub, fetch=True)
-            logger.info("fetching %s", sub)
-            # Iterate on each submission
-            async for submission in subreddit.new(limit=10):
-                if submission.stickied:
-                    continue
-                if submission.removed_by_category == "deleted":
-                    logger.info("continue because deleted : %s", submission)
-                    continue
-                try:
-                    sub_object: RedditSubmissionInfo = RedditSubmissionInfo(submission=submission)
-                    if sub_object.image_url not in last_bot_messages:
-                        # print("Not in last_bot_messages, sending")
-                        # TODO: I let some codes, if we want to change, with only sends
-                        # or with a full embed (with the set_image thing)
-                        # we can decide later.
-                        # await self.bot.nsfw_channel.send(submission.title)
-                        # await self.bot.nsfw_channel.send(url)
-                        embed = sub_object.to_embed()
-                        # embed.set_image(url=url)  # this of send(url) line
-                        await self.bot.nsfw_channel.send(embed=embed)
-                        await self.bot.nsfw_channel.send(sub_object.image_url)
-                    else:
-                        logger.info("Already in last_bot_messages, skipping")
-                except RedditException:
-                    pass
+            await process_subreddit(sub, last_bot_messages, self.bot.nsfw_channel, reddit, self.bot.user)
+
         await reddit.close()
         logger.info("Exiting hourly task.")
 
