@@ -15,6 +15,7 @@ from pathlib import Path
 import asyncpraw  # pip install asyncpraw
 from asyncpraw.models import Submission
 
+import backoff
 import discord
 from discord.ext import commands, tasks
 
@@ -29,7 +30,15 @@ REDDIT_ID = os.getenv("REDDIT_ID")
 REDDIT_SECRET = os.getenv("REDDIT_SECRET")
 REDDIT_AGENT = os.getenv("REDDIT_AGENT")
 
+MAX_TRY = 5
+CHANNEL_HISTORY = 500
+
 ########################
+
+
+@backoff.on_exception(backoff.expo, discord.DiscordServerError, max_tries=MAX_TRY)
+async def fetch_history(channel):
+    return [mess async for mess in channel.history(limit=CHANNEL_HISTORY)]
 
 
 @dataclass
@@ -141,9 +150,9 @@ class RedditBabes(commands.Cog):
 
         # we try to ask discord for history, but it can fail. return if
         try:
-            nsfw_channel_history = [mess async for mess in self.bot.nsfw_channel.history(limit=500)]  # noqa: E501
+            nsfw_channel_history = await fetch_history(self.bot.nsfw_channel)
         except discord.DiscordServerError as e:
-            logger.warning(f"Erreur Discord 503 lors de la récupération de l'historique : {e}")
+            logger.warning(f"Erreur Discord 503 lors de la récupération de l'historique après plusieurs tentatives : {e}")
             return  # Quitte proprement, la tâche se relancera à la prochaine heure
 
         # print(f"{nsfw_channel_history=}")
@@ -258,8 +267,8 @@ if __name__ == "__main__":
                     logger.info("continue because deleted : %s", submission)
                     continue
                 sub_object: RedditSubmissionInfo = RedditSubmissionInfo(submission=submission)
-                # print(sub_object)
-                # print("---------------")
+                print(sub_object)
+                print("---------------")
         await reddit.close()
 
     asyncio.run(main())
