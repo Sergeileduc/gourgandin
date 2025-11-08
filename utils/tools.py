@@ -1,11 +1,17 @@
 """File for some tools."""
 
+import logging
+import backoff
+import discord
 import aiohttp  # asynchronous lib for going on internet
 from requests_html import AsyncHTMLSession
 
 from bs4 import BeautifulSoup
 from discord.utils import find as disc_find
 
+logger = logging.getLogger(__name__)
+
+MAX_TRIES = 5
 
 headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}  # noqa:E501
 
@@ -87,3 +93,37 @@ async def get_soup_xml(url: str) -> BeautifulSoup:
     r = await asession.get(url, headers=headers, timeout=3)
     await asession.close()
     return BeautifulSoup(r.text, 'xml')
+
+
+@backoff.on_exception(backoff.expo, discord.DiscordServerError, max_tries=MAX_TRIES)
+async def fetch_history(channel: discord.TextChannel) -> list[discord.Message]:
+    """
+    Récupère l'historique des messages d'un canal Discord avec retry en cas d'erreur serveur.
+
+    Args:
+        channel (discord.TextChannel): Le canal Discord cible.
+
+    Returns:
+        list[discord.Message]: Liste des messages du canal.
+    """
+    return [message async for message in channel.history(limit=500)]
+
+
+async def get_last_bot_messages(channel: discord.TextChannel, bot_user: discord.ClientUser) -> list[str]:
+    """
+    Filtre les messages envoyés par le bot dans un canal Discord.
+
+    Args:
+        channel (discord.TextChannel): Le canal Discord à analyser.
+        bot_user (discord.ClientUser): L'utilisateur représentant le bot.
+
+    Returns:
+        list[str]: Contenus textuels des messages envoyés par le bot.
+    """
+    try:
+        history = await fetch_history(channel)
+    except discord.DiscordServerError as e:
+        logger.warning(f"Erreur Discord 503 : {e}")
+        return []
+
+    return [message.content for message in history if message.author == bot_user]
