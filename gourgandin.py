@@ -51,7 +51,7 @@ cogs_ext_list = ["cogs.bonjourmadame",
                  "cogs.lemonde",
                  "cogs.code",
                  "cogs.jv",
-                 "cogs.redditbabes",
+                 "cogs.redditbabes.redditbabes",
                  "cogs.youtube",
                  ]
 
