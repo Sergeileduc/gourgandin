@@ -41,6 +41,39 @@ async def fetch_history(channel):
     return [mess async for mess in channel.history(limit=CHANNEL_HISTORY)]
 
 
+async def get_last_bot_messages(channel: discord.TextChannel, bot_user: discord.ClientUser) -> list[str]:
+    """
+    Récupère les derniers messages envoyés par le bot dans un canal Discord.
+
+    Cette fonction tente de récupérer l'historique du canal via `fetch_history`,
+    en gérant les erreurs Discord 503 avec un retour vide en cas d'échec.
+    Elle filtre ensuite les messages pour ne garder que ceux envoyés par le bot.
+
+    Args:
+        channel (discord.TextChannel): Le canal Discord à analyser.
+        bot_user (discord.ClientUser): L'utilisateur représentant le bot.
+
+    Returns:
+        list[str]: Une liste des contenus textuels des messages envoyés par le bot.
+                   Retourne une liste vide si l'historique n'a pas pu être récupéré.
+    """
+    try:
+        nsfw_channel_history = await fetch_history(channel)
+    except discord.DiscordServerError as e:
+        logger.warning(
+            f"Erreur Discord 503 lors de la récupération de l'historique après plusieurs tentatives : {e}"
+        )
+        return []
+
+    return [
+        message.content
+        for message in nsfw_channel_history
+        if message.author == bot_user
+    ]
+
+########################
+
+
 @dataclass
 class RedditSubmissionInfo:
     submission: Submission
@@ -117,6 +150,9 @@ class RedditException(Exception):
         super().__init__(f"[RedditException] {message} (ID: {submission_id})" if submission_id else message)
 
 
+########################
+
+
 class RedditBabes(commands.Cog):
     """Cog to get hourly babes from reddit and post them."""
 
@@ -148,17 +184,10 @@ class RedditBabes(commands.Cog):
         # allready posted babes list
         logger.info("Entering hourly task.")
 
-        # we try to ask discord for history, but it can fail. return if
-        try:
-            nsfw_channel_history = await fetch_history(self.bot.nsfw_channel)
-        except discord.DiscordServerError as e:
-            logger.warning(f"Erreur Discord 503 lors de la récupération de l'historique après plusieurs tentatives : {e}")
-            return  # Quitte proprement, la tâche se relancera à la prochaine heure
-
-        # print(f"{nsfw_channel_history=}")
-        last_bot_messages = [message.content
-                             for message in nsfw_channel_history
-                             if message.author == self.bot.user]
+        # we try to ask discord for history, but it can fail. in case, return
+        last_bot_messages = await get_last_bot_messages(self.bot.nsfw_channel, self.bot.user)
+        if not last_bot_messages:
+            return
 
         logger.info("Messages fetched.")
         # Reddit client
