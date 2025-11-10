@@ -30,3 +30,8 @@ cov.xml
 .hypothesis/
 .pytest_cache/
 google.json
+
+# bullshit tests
+test_reddit*.py
+testreddit.py
+out*.txt
