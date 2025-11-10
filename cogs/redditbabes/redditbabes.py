@@ -6,19 +6,15 @@
 # put a file named redditbabes.txt in the directory
 # each line will be a subreddit that you want to get hourly
 
-from typing import Optional
-from dataclasses import dataclass, field
 import os
 import logging
 from pathlib import Path
 
 import asyncpraw  # pip install asyncpraw
-from asyncpraw.models import Submission
 
 import discord
 from discord.ext import commands, tasks
 
-from utils.tools import get_last_bot_messages
 
 from .reddit_client import get_reddit_client
 from .reddit_poster import RedditPoster
@@ -32,19 +28,22 @@ HISTORY_LIMIT = 500
 ########################
 
 
-async def load_subreddits() -> list[str]:
+async def load_subreddits(filename: str = "redditbabes.txt") -> list[str]:
     """
-    Charge la liste des subreddits à parcourir depuis le fichier local `redditbabes.txt`.
+    Charge la liste des subreddits à parcourir depuis un fichier local.
+
+    Args:
+        filename (str): Nom du fichier contenant les subreddits.
 
     Returns:
         list[str]: Une liste de noms de subreddits. Retourne une liste vide si le fichier est introuvable.
     """
+    path = Path(__file__).parent / filename
     try:
-        p = Path(__file__).parent / "redditbabes.txt"
-        with open(p, mode='r', encoding='utf-8') as f:
-            return f.read().splitlines()
+        with path.open(mode="r", encoding="utf-8") as f:
+            return [line.strip() for line in f if line.strip()]
     except FileNotFoundError:
-        logger.error("Fichier redditbabes.txt introuvable.")
+        logger.error("Fichier %s introuvable.", filename)
         return []
 
 
@@ -149,19 +148,13 @@ if __name__ == "__main__":
         logger.info("Reddit ok.")
 
         # List of subreddits
-        try:
-            p = Path(__file__).parent / "redditbabes.txt"
-            with open(p, mode='r', encoding='utf-8') as f:
-                subreddits = f.read().splitlines()
-        except FileNotFoundError:
-            logger.error("cogs/redditbabes.txt is missing")
-            subreddits = []
+        subreddits = await load_subreddits("redditbabes_test.txt")
 
         for sub in subreddits:
             subreddit = await reddit.subreddit(sub, fetch=True)
             logger.info("fetching %s", sub)
             # Iterate on each submission
-            async for submission in subreddit.new(limit=10):
+            async for submission in subreddit.new(limit=2):
                 if submission.stickied:
                     continue
                 if submission.removed_by_category == "deleted":
