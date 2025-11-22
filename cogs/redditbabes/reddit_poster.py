@@ -72,7 +72,8 @@ grâce à une mémoire des derniers messages envoyés par le bot.
 
             for sub_object in submissions:
                 try:
-                    if sub_object.image_url not in self.last_bot_messages:
+                    if (sub_object.image_url not in self.last_bot_messages
+                            and sub_object.is_younger(hours=3)):
                         embed = sub_object.to_embed()
                         await self.channel.send(embed=embed)
                         await self.channel.send(sub_object.image_url)

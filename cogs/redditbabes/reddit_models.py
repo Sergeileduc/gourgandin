@@ -1,4 +1,6 @@
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
+
 import logging
 from typing import Optional
 
@@ -18,6 +20,7 @@ class RedditSubmissionInfo:
     is_album: bool = field(init=False)
     image_count: int = field(init=False)
     image_url: Optional[str] = field(init=False)
+    created_at: datetime = field(init=False)
 
     def __post_init__(self):
         self.post_url = self.submission.url
@@ -27,6 +30,7 @@ class RedditSubmissionInfo:
         self.is_album = hasattr(self.submission, "media_metadata") and bool(self.submission.media_metadata)
         self.image_url = None
         self.image_count = 0
+        self.created_at = datetime.fromtimestamp(self.submission.created_utc, tz=timezone.utc)
         logger.debug(self.post_url)
 
         if self.is_album:
@@ -75,6 +79,11 @@ class RedditSubmissionInfo:
         #     embed.set_image(url=self.image_url)
         # embed.set_footer(text=f"Posté par u/{self.author}")
         return embed
+
+    def is_younger(self, days: int = 1, hours: int = 0) -> bool:
+        """Retourne True si le post est plus récent que la durée donnée."""
+        delta = timedelta(days=days, hours=hours)
+        return datetime.now(timezone.utc) - self.created_at < delta
 
 
 class RedditException(Exception):
