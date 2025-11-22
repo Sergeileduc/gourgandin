@@ -65,29 +65,37 @@ async def on_ready():
     bot.guild = bot.get_guild(GUILD_ID)  # se lier au serveur à partir de l'ID
     bot.nsfw_channel = discord.utils.get(bot.guild.text_channels, name=NSFW_BOT_CHANNEL)
     bot.nsfw_channel_manual = discord.utils.get(bot.guild.text_channels, name=NSFW_MANUAL_CHANNEL)
-    logging.info('------')
-    await bot.tree.sync()
 
-
-@bot.event
-async def setup_hook():
-    """A coroutine to be called to setup the bot.
-
-    To perform asynchronous setup after the bot is logged in but before
-    it has connected to the Websocket, overwrite this coroutine.
-
-    This is only called once, in `login`, and will be called before
-    any events are dispatched, making it a better solution than doing such
-    setup in the `~discord.on_ready` event.
-
-    Warning :
-    Since this is called *before* the websocket connection is made therefore
-    anything that waits for the websocket will deadlock, this includes things
-    like :meth:`wait_for` and :meth:`wait_until_ready`.
-    """
-    logging.info("Setup_hook !!!")
+    # Charger les cogs une fois que les channels existent
     for ext in cogs_ext_list:
         await bot.load_extension(ext)
+
+    await bot.tree.sync()
+    logging.info('------')
+
+
+# I put the load_extensions back in on_ready, because the problem
+# was that load_extensions was triggered before connection, so nsfw_channel wasn't initialised
+# TODO later.
+# @bot.event
+# async def setup_hook():
+#     """A coroutine to be called to setup the bot.
+
+#     To perform asynchronous setup after the bot is logged in but before
+#     it has connected to the Websocket, overwrite this coroutine.
+
+#     This is only called once, in `login`, and will be called before
+#     any events are dispatched, making it a better solution than doing such
+#     setup in the `~discord.on_ready` event.
+
+#     Warning :
+#     Since this is called *before* the websocket connection is made therefore
+#     anything that waits for the websocket will deadlock, this includes things
+#     like :meth:`wait_for` and :meth:`wait_until_ready`.
+#     """
+#     logging.info("Setup_hook !!!")
+#     for ext in cogs_ext_list:
+#         await bot.load_extension(ext)
 
 
 if __name__ == "__main__":
