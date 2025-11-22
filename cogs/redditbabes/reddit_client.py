@@ -59,14 +59,7 @@ async def fetch_new_submissions(
         if submission.stickied or submission.removed_by_category == "deleted":
             continue
 
-        info = RedditSubmissionInfo(
-            title=submission.title,
-            url=submission.url,
-            score=submission.score,
-            nsfw=submission.over_18,
-            image_url=submission.url if submission.url.endswith((".jpg", ".png", ".gif")) else None,
-            permalink=submission.permalink
-        )
+        info = RedditSubmissionInfo(submission=submission)
         submissions.append(info)
 
     return submissions
