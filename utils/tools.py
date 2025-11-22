@@ -1,9 +1,12 @@
 """File for some tools."""
 
 import logging
+from typing import Optional
+
+import aiohttp  # asynchronous lib for going on internet
 import backoff
 import discord
-import aiohttp  # asynchronous lib for going on internet
+from discord.ext import commands
 from requests_html import AsyncHTMLSession
 
 from bs4 import BeautifulSoup
@@ -157,3 +160,34 @@ async def get_last_bot_messages(
         return []
 
     return [message.content for message in history if message.author == bot_user]
+
+
+def get_channel_by_name(bot: commands.Bot, guild_id: int, channel_name: str) -> Optional[discord.TextChannel]:
+    """
+    Resolve a text channel by its name within a given guild.
+
+    Parameters
+    ----------
+    bot : commands.Bot
+        The Discord bot instance, used to access guilds and channels.
+    guild_id : int
+        The ID of the guild (server) where the channel should be searched.
+    channel_name : str
+        The exact name of the text channel to resolve.
+
+    Returns
+    -------
+    Optional[discord.TextChannel]
+        The resolved text channel object if found, otherwise None.
+
+    Notes
+    -----
+    - This function performs a lookup by channel name, which is explicit and human-readable.
+    - If the guild is not yet available (e.g., before on_ready), the function will return None.
+    - Prefer using channel IDs for robustness, but this helper is useful for quick testing
+      or when channel names are stable and meaningful.
+    """
+    guild = bot.get_guild(guild_id)
+    if guild is None:
+        return None
+    return discord.utils.get(guild.text_channels, name=channel_name)

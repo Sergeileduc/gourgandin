@@ -55,6 +55,10 @@ cogs_ext_list = ["cogs.bonjourmadame",
                  "cogs.youtube",
                  ]
 
+# TODO : c'est un peu moche, setup_hook c'est quand même mieux que de charger dans on_ready,
+# mais on verra plus tard comment régler ça.
+bot.cogs_loaded = False
+
 
 @bot.event
 async def on_ready():
@@ -62,16 +66,18 @@ async def on_ready():
     logging.info('Logged in as')
     logging.info(bot.user.name)
     logging.info(bot.user.id)
-    bot.guild = bot.get_guild(GUILD_ID)  # se lier au serveur à partir de l'ID
-    bot.nsfw_channel = discord.utils.get(bot.guild.text_channels, name=NSFW_BOT_CHANNEL)
-    bot.nsfw_channel_manual = discord.utils.get(bot.guild.text_channels, name=NSFW_MANUAL_CHANNEL)
 
-    # Charger les cogs une fois que les channels existent
-    for ext in cogs_ext_list:
-        await bot.load_extension(ext)
+    if not bot.cogs_loaded:
+        bot.guild = bot.get_guild(GUILD_ID)
+        bot.nsfw_channel = discord.utils.get(bot.guild.text_channels, name=NSFW_BOT_CHANNEL)
+        bot.nsfw_channel_manual = discord.utils.get(bot.guild.text_channels, name=NSFW_MANUAL_CHANNEL)
 
-    await bot.tree.sync()
-    logging.info('------')
+        for ext in cogs_ext_list:
+            await bot.load_extension(ext)
+
+        await bot.tree.sync()
+        bot.cogs_loaded = True
+        logging.info("Cogs loaded and channels set.")
 
 
 # I put the load_extensions back in on_ready, because the problem
