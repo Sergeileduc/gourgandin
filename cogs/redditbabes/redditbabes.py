@@ -162,6 +162,7 @@ if __name__ == "__main__":
                     continue
                 sub_object: RedditSubmissionInfo = RedditSubmissionInfo(submission=submission)
                 print(sub_object)
+                print(sub_object.is_younger())
                 print("---------------")
         await reddit.close()
 
