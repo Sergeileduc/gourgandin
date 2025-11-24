@@ -53,6 +53,7 @@ cogs_ext_list = ["cogs.bonjourmadame",
                  "cogs.jv",
                  "cogs.redditbabes.redditbabes",
                  "cogs.youtube",
+                 "cogs.nsfwapi",
                  ]
 
 # TODO : c'est un peu moche, setup_hook c'est quand même mieux que de charger dans on_ready,
