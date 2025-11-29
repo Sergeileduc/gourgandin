@@ -1,20 +1,13 @@
-import shutil
 import os
-
 import discord
 from collections import Counter
-import asyncio
-
 from dotenv import load_dotenv
 
-
-# Parse a .env file and then load all the variables found as environment variables.
+# Charger les variables d'environnement
 load_dotenv()
 TOKEN: str = os.getenv("GOURGANDIN_TOKEN")
 GUILD_ID: int = int(os.getenv("GUILD_ID"))
 NSFW_BOT_CHANNEL: str = "nsfw-manuel"
-# NSFW_BOT_CHANNEL: str = "nsfw-bot"
-# Done
 
 
 def report_bars_percent(counter, top_n=20, charset="unicode"):
@@ -24,20 +17,11 @@ def report_bars_percent(counter, top_n=20, charset="unicode"):
         pct = count / total * 100
         bar_len = int(pct / 0.3)
         bar_char = "█" if charset == "unicode" else "-"
-        # mot sur 12 caractères, barre, pourcentage sur 5.1f, valeur absolue sur 6 chiffres
         bars.append(f"{word:<12} | {bar_char * bar_len:<12} {pct:5.1f}% ({count:>6})")
     return "\n".join(bars)
 
 
-intents = discord.Intents.default()
-intents.messages = True
-intents.guilds = True
-client = discord.Client(intents=intents)
-
-
-@client.event
-async def on_ready():
-    print(f"Connecté en tant que {client.user}")
+async def analyze_channel(client: discord.Client):
     guild = client.get_guild(GUILD_ID)
     nsfw_channel = discord.utils.get(guild.text_channels, name=NSFW_BOT_CHANNEL)
 
@@ -48,10 +32,8 @@ async def on_ready():
                 word = embed.title.split()[0]
                 first_words.append(word)
 
-    # Construire le Counter
     counter = Counter(first_words)
 
-    # Appliquer exclusions
     exclusions = {
         "Amateur", "Ass", "Big", "Cute",
         "Boobs", "Photographer", "Photographer:",
@@ -61,7 +43,6 @@ async def on_ready():
     for word in exclusions:
         counter.pop(word, None)
 
-    # Affichage
     print("Clés restantes:", list(counter.keys())[:20])
 
     print("Top premiers mots d'embed :")
@@ -72,8 +53,17 @@ async def on_ready():
     print(report_bars_percent(counter, top_n=20, charset="unicode"))
     print("```")
 
-    await client.close()
-
 # --- point d’entrée ---
 if __name__ == "__main__":
+    intents = discord.Intents.default()
+    intents.messages = True
+    intents.guilds = True
+    client = discord.Client(intents=intents)
+
+    @client.event
+    async def on_ready():
+        print(f"Connecté en tant que {client.user}")
+        await analyze_channel(client)
+        await client.close()
+
     client.run(TOKEN)
