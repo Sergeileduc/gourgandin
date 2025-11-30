@@ -14,7 +14,7 @@ import asyncpraw  # pip install asyncpraw
 
 import discord
 from discord.ext import commands, tasks
-
+from discord import app_commands
 
 from .reddit_client import get_reddit_client
 from .reddit_poster import RedditPoster
@@ -47,6 +47,62 @@ async def load_subreddits(filename: str = "redditbabes.txt") -> list[str]:
         return []
 
 
+async def save_subreddits(subreddits: list[str], filename: str = "redditbabes.txt") -> None:
+    """
+    Sauvegarde la liste des subreddits dans un fichier local.
+
+    Args:
+        subreddits (list[str]): La liste des noms de subreddits à enregistrer.
+        filename (str): Nom du fichier où écrire les subreddits.
+
+    Returns:
+        None
+    """
+    path = Path(__file__).parent / filename
+    try:
+        with path.open(mode="w", encoding="utf-8") as f:
+            for sub in subreddits:
+                f.write(f"{sub}\n")
+        logger.info("Liste des subreddits sauvegardée dans %s.", filename)
+    except Exception as e:
+        logger.error("Erreur lors de la sauvegarde du fichier %s : %s", filename, e)
+
+
+########################
+
+class RedditGroup(app_commands.Group):
+    def __init__(self):
+        super().__init__(name="reddit", description="Gestion des subreddits")
+
+    @app_commands.command(name="list", description="Lister les subreddits")
+    async def list_subs(self, interaction: discord.Interaction):
+        subs = await load_subreddits()
+        if not subs:
+            await interaction.response.send_message("📂 Aucun subreddit enregistré.")
+        else:
+            msg = "\n".join(f"{i + 1}. {s}" for i, s in enumerate(subs))
+            await interaction.response.send_message(f"📜 Liste des subreddits :\n{msg}")
+
+    @app_commands.command(name="add", description="Ajouter un subreddit")
+    async def add_sub(self, interaction: discord.Interaction, name: str):
+        subs = await load_subreddits()
+        if name in subs:
+            await interaction.response.send_message(f"⚠️ {name} est déjà dans la liste.")
+            return
+        subs.append(name)
+        await save_subreddits(subs)
+        await interaction.response.send_message(f"✅ {name} ajouté.")
+
+    @app_commands.command(name="remove", description="Supprimer un subreddit")
+    async def remove_sub(self, interaction: discord.Interaction, name: str):
+        subs = await load_subreddits()
+        if name not in subs:
+            await interaction.response.send_message(f"❌ {name} n’est pas dans la liste.")
+            return
+        subs = [s for s in subs if s != name]
+        await save_subreddits(subs)
+        await interaction.response.send_message(f"🗑️ {name} supprimé.")
+
 ########################
 
 
@@ -61,6 +117,9 @@ class RedditBabes(commands.Cog):
                                    bot_user=self.bot.user,
                                    )  # depuis reddit_poster.py
         self.babes.start()  # pylint: disable=no-member
+
+        # 👉 Ajout du groupe slash commands au tree
+        self.bot.tree.add_command(RedditGroup())
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
