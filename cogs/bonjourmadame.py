@@ -9,7 +9,7 @@ from pathlib import Path
 
 from discord.ext import commands, tasks
 
-from utils.tools import get_soup_html
+from utils.tools import amake_soup
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 async def latest_madame():
     """Fetch last Bonjourmadame picture."""
     url = "https://www.bonjourmadame.fr/"
-    soup = await get_soup_html(url)
+    soup = await amake_soup(url, parser='html.parser')
 
     # Title and content
     content = soup.select_one("div.post-content > p")
@@ -91,3 +91,20 @@ async def setup(bot):
     """
     await bot.add_cog(BonjourMadame(bot))
     logger.info("BonjourMadame cog added")
+
+
+# main is for debugging purpose
+if __name__ == "__main__":
+    import asyncio
+
+    logger.setLevel(logging.DEBUG)
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.DEBUG)
+    logger.addHandler(console_handler)
+
+    async def main():
+        url, title, book = await latest_madame()
+        print(url)
+        print(title)
+
+    asyncio.run(main())
