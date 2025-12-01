@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 TOKEN: str = os.getenv("GOURGANDIN_TOKEN")
 GUILD_ID: int = int(os.getenv("GUILD_ID"))
-NSFW_BOT_CHANNEL: str = "nsfw-manuel"
+NSFW_BOT_CHANNEL: str = "nsfw-bot"
 
 
 def report_bars_percent(counter, top_n=20, charset="unicode"):
@@ -35,10 +35,11 @@ async def analyze_channel(client: discord.Client):
     counter = Counter(first_words)
 
     exclusions = {
-        "Amateur", "Ass", "Big", "Cute",
-        "Boobs", "Photographer", "Photographer:",
+        "Amateur", "Ass", "Big",
+        "Boobs",
+        "Photographer", "Photographer:", "Selfportrait",
         "[Mature", "Mature",
-        "Beautiful"
+        "Beautiful", "Cute", "Babe",
     }
     for word in exclusions:
         counter.pop(word, None)

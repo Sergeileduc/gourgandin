@@ -1,24 +1,13 @@
 """File for some tools."""
 
-import aiohttp
-import requests
 import logging
 from typing import Optional
-import warnings
 
 import backoff
 import discord
 from discord.ext import commands
-from requests_html import AsyncHTMLSession
 
-from bs4 import BeautifulSoup
 from discord.utils import find as disc_find
-
-try:
-    from requests_html import HTMLSession
-    HAS_REQUESTS_HTML = True
-except ImportError:
-    HAS_REQUESTS_HTML = False
 
 
 logger = logging.getLogger(__name__)
