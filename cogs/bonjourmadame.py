@@ -9,7 +9,7 @@ from pathlib import Path
 
 from discord.ext import commands, tasks
 
-from utils.tools import amake_soup
+from python_web_tools_sl import amake_soup
 
 logger = logging.getLogger(__name__)
 

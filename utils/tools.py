@@ -4,6 +4,7 @@ import aiohttp
 import requests
 import logging
 from typing import Optional
+import warnings
 
 import backoff
 import discord
@@ -66,6 +67,12 @@ async def get_soup_html(url: str) -> BeautifulSoup:
         BeautifulSoup: soup
 
     """
+    warnings.warn(
+        "get_soup_html est obsolète, utilisez make_soup ou amake_soup",
+        DeprecationWarning,
+        stacklevel=2
+        )
+
     # get HTML page with async GET request
     async with aiohttp.ClientSession() as session:
         async with session.get(url, timeout=3, ssl=False) as resp:
