@@ -34,6 +34,10 @@ def string_is_int(string: str) -> bool:  # pragma: no cover
         return False
 
 
+######################################################################################
+# LEGACY
+######################################################################################
+
 async def get_soup_lxml(url: str) -> BeautifulSoup:
     """Return a BeautifulSoup soup from given url, Parser is lxml.
 
@@ -102,6 +106,10 @@ async def get_soup_xml(url: str) -> BeautifulSoup:
     r = await asession.get(url, headers=headers, timeout=3)
     await asession.close()
     return BeautifulSoup(r.text, 'xml')
+
+######################################################################################
+# DISCORD
+######################################################################################
 
 
 # this function can be reused. it's not a bug if we define it in get_last_bot_messages again.
@@ -199,6 +207,11 @@ def get_channel_by_name(bot: commands.Bot, guild_id: int, channel_name: str) -> 
     if guild is None:
         return None
     return discord.utils.get(guild.text_channels, name=channel_name)
+
+
+######################################################################################
+# REFACTOR
+######################################################################################
 
 
 def make_soup(
