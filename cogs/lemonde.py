@@ -11,6 +11,8 @@ from bs4 import BeautifulSoup, Tag
 from discord.ext import commands
 # from reretry import retry
 
+from python_web_tools_sl import select_tag
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 # logger.addHandler(logging.StreamHandler())
@@ -52,12 +54,6 @@ def _new_delay(max_delay, backoff, jitter, delay):
         delay = min(delay, max_delay)
 
     return delay
-
-
-def select_tag(soup: BeautifulSoup, selector: str) -> dict:
-    """Select tag in soup and return dict (name:value)."""
-    items = soup.select(selector)
-    return {i['name']: i['value'] for i in items if i.has_attr('name') if i.has_attr('value')}
 
 
 def remove_bloasts(article: Tag):
