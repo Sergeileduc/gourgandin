@@ -1,9 +1,10 @@
 """File for some tools."""
 
+import aiohttp
+import requests
 import logging
 from typing import Optional
 
-import aiohttp  # asynchronous lib for going on internet
 import backoff
 import discord
 from discord.ext import commands
@@ -60,7 +61,7 @@ async def get_soup_html(url: str) -> BeautifulSoup:
             text = await resp.text()
         await session.close()
     # BeautifulSoup will transform raw HTML in a tree easy to parse
-    return BeautifulSoup(text, 'html.parser')
+    return BeautifulSoup(text, features='html.parser')
 
 
 def args_separator_for_log_function(guild, args):
@@ -191,3 +192,82 @@ def get_channel_by_name(bot: commands.Bot, guild_id: int, channel_name: str) -> 
     if guild is None:
         return None
     return discord.utils.get(guild.text_channels, name=channel_name)
+
+
+def make_soup(
+    url: str,
+    parser: str = "html.parser",
+    timeout: int = 3,
+    ssl: bool = True
+) -> BeautifulSoup:
+    """
+    Récupère le contenu HTML d'une URL de manière synchrone et retourne un objet BeautifulSoup.
+
+    Args:
+        url (str): L'URL de la page à télécharger.
+        parser (str, optional): Parser utilisé pour analyser le HTML.
+            - "html.parser" (par défaut) : parser intégré à Python, rapide et sans dépendance externe.
+            - "lxml" : nécessite lxml, très performant.
+            - "html5lib" : parser fidèle au standard HTML5.
+        timeout (int, optional): Timeout en secondes pour la requête (par défaut 3).
+        ssl (bool, optional): Active/désactive la vérification SSL (par défaut True).
+            ⚠️ Note : requests ne prend pas directement `ssl=False`, mais `verify=False`.
+            Ici, si `ssl=False`, la vérification du certificat est désactivée.
+
+    Returns:
+        BeautifulSoup: Objet représentant l'arbre DOM de la page.
+
+    Raises:
+        requests.exceptions.RequestException: Si la requête échoue (connexion, timeout, etc.).
+        requests.exceptions.HTTPError: Si le serveur retourne un code d'erreur HTTP.
+    """
+    resp = requests.get(url, timeout=timeout, verify=ssl)
+    resp.raise_for_status()
+    return BeautifulSoup(resp.text, features=parser)
+
+
+async def amake_soup(
+    url: str,
+    parser: str = "html.parser",
+    timeout: int = 3,
+    ssl: bool = False
+) -> BeautifulSoup:
+    """
+    Récupère le contenu HTML d'une URL de manière asynchrone et retourne un objet BeautifulSoup.
+
+    Args:
+        url (str): L'URL de la page à télécharger.
+        parser (str, optional): Parser utilisé pour analyser le HTML (par défaut "html.parser").
+        timeout (int, optional): Timeout en secondes pour la requête (par défaut 3).
+        ssl (bool, optional): Active/désactive la vérification SSL (par défaut False).
+
+    Returns:
+        BeautifulSoup: Objet représentant l'arbre DOM de la page.
+
+    Raises:
+        aiohttp.ClientError: Si la requête échoue (connexion, timeout, etc.).
+        aiohttp.ClientResponseError: Si le serveur retourne un code d'erreur HTTP.
+    """
+    timeout_obj = aiohttp.ClientTimeout(total=timeout)
+    async with aiohttp.ClientSession(timeout=timeout_obj) as session:
+        async with session.get(url, ssl=ssl) as resp:
+            resp.raise_for_status()
+            text = await resp.text()
+            return BeautifulSoup(text, features=parser)
+
+
+def soup_from_text(text: str, parser: str = "html.parser") -> BeautifulSoup:
+    """
+    Construit un objet BeautifulSoup directement à partir d'une chaîne HTML.
+
+    Args:
+        text (str): Chaîne contenant du HTML brut.
+        parser (str, optional): Le parser à utiliser pour analyser le HTML.
+            - "html.parser" (par défaut)
+            - "lxml"
+            - "html5lib"
+
+    Returns:
+        BeautifulSoup: Objet représentant l'arbre DOM du HTML fourni.
+    """
+    return BeautifulSoup(text, features=parser)
