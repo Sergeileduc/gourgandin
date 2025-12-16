@@ -29,9 +29,15 @@ cov.xml
 *.cover
 .hypothesis/
 .pytest_cache/
+
+# personal
 google.json
+cogs/list-tags.txt
 
 # bullshit tests
 test_reddit*.py
 testreddit.py
 out*.txt
+
+# devtools
+WARP.md
