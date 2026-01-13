@@ -1,6 +1,8 @@
-import pytest
+from unittest.mock import MagicMock
+
 import discord
-from unittest.mock import AsyncMock, MagicMock
+import pytest
+
 from utils.tools import get_last_bot_messages
 
 

@@ -1,38 +1,65 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
 """Cog to get daily on bonjourmadame picture."""
 
 import datetime
+
 # from pytz import timezone
 import logging
 from pathlib import Path
 
 from discord.ext import commands, tasks
-
-from python_web_tools_sl import amake_soup
+from httpx import AsyncClient
+from selectolax.parser import HTMLParser
 
 logger = logging.getLogger(__name__)
 
+headers = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    )
+}
 
 async def latest_madame():
-    """Fetch last Bonjourmadame picture."""
+    """Fetch latest bonjourmadame img
+
+    Returns:
+        str: image url
+        str: image description
+        str: book if exist, or None
+    """
     url = "https://www.bonjourmadame.fr/"
-    soup = await amake_soup(url, parser='html.parser')
 
-    # Title and content
-    content = soup.select_one("div.post-content > p")
-    title = soup.select_one("header.post-header > h1 > a")
+    async with AsyncClient(headers=headers,
+                           follow_redirects=True,
+                           timeout=10.0,) as client:
+        resp = await client.get(url)
+        resp.raise_for_status()
 
-    title_txt, book, image_url = None, None, None
-    try:
-        if title:  # TITLE
-            title_txt = title.text
-        if a := content.find('a', href=True):  # book is the link to the private book of the model
-            book: str = a['href']
-        if image := content.find('img', src=True):  # image URL
-            image_url: str = image['src'].split('?')[0]
-    except AttributeError as e:
-        logger.error("erreur Bonjour Madame %s", e)
+    # print(resp.text)
+
+    tree = HTMLParser(resp.text)
+
+    # Selectolax: CSS selectors identiques à BS4
+    content = tree.css_first("div.post-content > p")
+    title_node = tree.css_first("header.post-header > h1 > a")
+
+    title_txt = title_node.text(strip=True) if title_node else None
+
+    # Book link
+    book = None
+    if content:
+        a = content.css_first("a[href]")
+        if a:
+            book = a.attributes.get("href")
+
+    # Image URL
+    image_url = None
+    if content:
+        img = content.css_first("img[src]")
+        if img:
+            image_url = img.attributes.get("src", "").split("?")[0]
+
     return image_url, title_txt, book
 
 
@@ -44,7 +71,7 @@ class BonjourMadame(commands.Cog):
         self.bonjour_madame.start()  # pylint: disable=no-member
 
     # @tasks.loop(hours=24)
-    @tasks.loop(time=datetime.time(hour=9, minute=30))  # THIS WORKS, but with an offset (9h30 actually triggers at 10h30 in winter)
+    @tasks.loop(time=datetime.time(hour=9, minute=30))  # THIS WORKS, but with an offset (9h30 actually triggers at 10h30 in winter)  # noqa: E501
     async def bonjour_madame(self):
         """Send daily bonjourmadame."""
         if not 0 <= datetime.date.today().weekday() <= 4:

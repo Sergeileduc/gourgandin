@@ -3,39 +3,19 @@ import asyncio
 import logging
 import os
 import random
+from typing import Literal
 
-import aiohttp
 import discord
-import pdfkit
-from bs4 import BeautifulSoup, Tag
+from discord import app_commands
 from discord.ext import commands
-# from reretry import retry
 
-from python_web_tools_sl import select_tag
+# from reretry import retry
+from dotenv import load_dotenv
+from lemonde_sl import LeMondeAsync, MyArticle
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 # logger.addHandler(logging.StreamHandler())
-
-LOGIN_URL = "https://secure.lemonde.fr/sfuser/connexion"
-options = {
-    'page-size': 'A4',
-    'margin-top': '20mm',
-    'margin-right': '20mm',
-    'margin-bottom': '20mm',
-    'margin-left': '20mm',
-    'encoding': "UTF-8",
-    'no-outline': None,
-    'custom-header': [
-        ('Accept-Encoding', 'gzip')
-    ],
-    "enable-local-file-access": "",
-    }
-
-headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
-    }
-
 
 # Retry
 TRIES = 10
@@ -56,108 +36,55 @@ def _new_delay(max_delay, backoff, jitter, delay):
     return delay
 
 
-def remove_bloasts(article: Tag):
-    "Remove some bloats in the article soup."
-    css = [
-        ".meta__social",
-        "ul.breadcrumb",
-        "section.article__reactions",
-        "section.friend",
-        "section.article__siblings",
-        "aside.aside__iso.old__aside",
-        "section.inread",
-    ]
-    for c in css:
-        try:
-            list_elements = article.select(c)
-            for elem in list_elements:
-                elem.decompose()  # remove some bloats
-                logger.debug("Element %s decomposed", c)
-        except AttributeError:
-            logger.info("FAILS to remove %s bloat in the article. Pass.", c)
+async def get_article(url: str, mobile: bool, dark_mode: bool) -> MyArticle:
+    """
+    Fetch and generate a PDF version of a Le Monde article using the library's
+    asynchronous client.
 
-
-def fix_images_urls(article: BeautifulSoup) -> None:
-    """Fixes image URLs in the provided article by updating the 'src' attribute.
-
-    This function scans the article for image tags and updates their 'src'
-    attributes based on the 'data-srcset' attribute. It ensures that the images
-    are correctly referenced for display.
+    This helper function encapsulates the interaction with ``LeMondeAsync`` so
+    that the Discord bot does not need to manage the client lifecycle, login
+    details, or PDF generation logic directly. Centralizing this logic keeps the
+    bot code clean, makes error handling consistent, and allows the underlying
+    implementation to evolve without requiring changes in the bot.
 
     Args:
-        article (BeautifulSoup): The BeautifulSoup object representing
-        the article from which to fix image URLs.
+        url (str): The URL of the Le Monde article to fetch.
+        mobile (bool): Whether to render the article using the mobile layout
+            (A6 format, reduced margins).
+        dark_mode (bool): Whether to apply the dark theme to the generated PDF.
 
     Returns:
-        None
+        MyArticle: A structured result containing:
+            - ``path``: Path to the generated PDF file.
+            - ``success``: Whether the PDF was generated without fatal errors.
+            - ``warning``: Optional warning message (e.g., multimedia removed).
+
+    Notes:
+        This function exists to decouple the bot from the internal details of
+        the Le Monde scraping and PDF generation pipeline. It provides a stable
+        interface for the bot, while allowing the library to change its internal
+        behavior (authentication, HTML parsing, fallback strategies, etc.)
+        without requiring modifications in the bot code.
     """
 
-    imgs = article.select("img")
-    for im in imgs:
-        if im.has_attr("data-srcset"):
-            srcset = im["data-srcset"]
-            tmpsrc = srcset.split(",")
-            for tmp in tmpsrc:
-                if "664w" in tmp or "1x" in tmp:
-                    url_im = tmp.strip().split(" ")[0]
-                    im["src"] = url_im
+    # Load environment variables (idempotent)
+    load_dotenv()
 
+    EMAIL = os.getenv("LM_SL_EMAIL")
+    PASSWORD = os.getenv("LM_SL_PASSWD")
 
-# @retry(asyncio.exceptions.TimeoutError, tries=10, delay=2, backoff=1.2, jitter=(0, 1))
-async def get_article(url: str) -> str:
-    """Get the article from the URL
+    if not EMAIL or not PASSWORD:
+        raise RuntimeError("Missing LM_SL_EMAIL or LM_SL_PASSWD in environment")
 
-    Args:
-        url (str): url of article to be fetched
+    async with LeMondeAsync() as lm:
+        return await lm.fetch_pdf(
+            url=url,
+            email=EMAIL,
+            password=PASSWORD,
+            mobile=mobile,
+            dark=dark_mode,
+        )
 
-    Returns:
-        str: path to the PDF file
-    """
-    session = aiohttp.ClientSession(headers=headers)
-    # Login
-    r = await session.get(LOGIN_URL)
-    soup = BeautifulSoup(await r.text(), "html.parser")
-    form = soup.select_one('form[method="post"]')
-    payload = select_tag(form, "input")
-    email = os.getenv("LEMONDE_EMAIL")
-    payload['email'] = email
-    payload['password'] = os.getenv("LEMONDE_PASSWD")
-    rp = await session.post(LOGIN_URL, data=payload)
-    if rp.status != 200 or email not in await rp.text():
-        raise ValueError("Wrong login")
-    else:
-        logger.info("Login was ok")
-    await asyncio.sleep(random.uniform(2.0, 3.0))
-
-    html = None
-    # Fetch article and print in PDF
-    try:
-        r = await session.get(url, headers=headers, timeout=6)
-        logger.info("status : %s", r.status)
-        html = await r.text()
-        logger.info("Get was ok")
-    except asyncio.exceptions.TimeoutError:
-        logger.warning("Timeout !")
-        raise
-    finally:
-        await session.close()
-
-    if html:
-        logger.info("Ok, doing some magic on HTML")
-        soup = BeautifulSoup(html, 'html.parser')
-        article = soup.select_one("main > .article--content")
-        # article = soup.select_one("section.zone--article")
-        # article = soup.select_one(".zone.zone--article")
-        remove_bloasts(article)
-        fix_images_urls(article)
-
-        full_name = url.rsplit('/', 1)[-1]
-        out_file = f"{os.path.splitext(full_name)[0]}.pdf"
-        logger.info("Ok, making the pdf now.")
-        pdfkit.from_string(str(article), out_file, options=options)
-        logger.info("Returning file")
-        return out_file
-    return None
 
 
 class LeMonde(commands.Cog):
@@ -166,19 +93,53 @@ class LeMonde(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @commands.hybrid_command()
-    # @commands.command()
-    async def lemonde(self, ctx: commands.Context, url: str):
-        "Download an article from Lemonde.fr"
+    @app_commands.command(name="lemonde", description="Télécharge un article en PDF")
+    async def lemonde(
+        self,
+        interaction: discord.Interaction,
+        url: str,
+        mode: Literal[
+            "Normal Clair", "Normal Dark", "Mobile Clair", "Mobile Dark"
+        ] = "Normal Clair",
+    ) -> None:
+        """
+        Télécharge un article depuis Lemonde.fr et l'affiche dans Discord.
+
+        Args:
+            interaction(discord.Interaction): L'interaction Discord.
+            url (str): Lien vers l'article.
+            mobile (Literal["Oui", "Non"]): Mode mobile.
+            dark_mode (Literal["Oui", "Non"]): Mode sombre.
+
+        Comportement :
+            - Affiche les paramètres reçus dans un message de suivi.
+            - Tente de récupérer l'article avec plusieurs essais en cas de timeout.
+            - Utilise `to_bool()` pour convertir les paramètres en booléens.
+        """
+
+        mobile: bool = "Mobile" in mode
+        dark_mode: bool = "Dark" in mode
+
+        await interaction.response.defer(ephemeral=False)
+
+        # Log pour debug
+        logger.info(
+            f"Commande /lemonde appelée avec url={url}, mobile={mobile}, dark_mode={dark_mode}"
+        )
+        await interaction.followup.send(
+            f"📄 Article: {url}\n📱 Mobile: {mobile}\n🌙 Mode sombre: {dark_mode}"
+        )
+
         # Retry
         _tries, _delay = TRIES, DELAY
 
-        await ctx.defer(ephemeral=False)
-
+        msg_wait = await interaction.followup.send("⏳ Traitement en cours…", ephemeral=False)
         # While loop to retry fetching article, in case of Timeout errors
         while _tries:
             try:
-                out_file = await get_article(url)
+                my_article: MyArticle = await get_article(
+                    url=url, mobile=mobile, dark_mode=dark_mode
+                )
                 logger.info("out file ok")
                 break
             except asyncio.exceptions.TimeoutError:
@@ -186,11 +147,13 @@ class LeMonde(commands.Cog):
                 _tries -= 1
                 logger.warning("Tries left = %d", _tries)
 
-                error_message = ("Erreur : Timeout. "
-                                 f"Tentative {TRIES - _tries}/{TRIES} échec - "
-                                 f"Nouvel essai dans {_delay:.2f} secondes...")
+                error_message = (
+                    "Erreur : Timeout. "
+                    f"Tentative {TRIES - _tries}/{TRIES} échec - "
+                    f"Nouvel essai dans {_delay:.2f} secondes..."
+                )
                 delete_after = _delay + 1.9
-                await ctx.channel.send(error_message, delete_after=delete_after)
+                await interaction.followup.send(error_message, delete_after=delete_after)
                 if not _tries:
                     raise
 
@@ -200,16 +163,19 @@ class LeMonde(commands.Cog):
         # End of retry While loop
 
         try:
-            await ctx.send(content=url)
-            await ctx.send(file=discord.File(out_file))
-            os.remove(out_file)
+            # await interaction.followup.send(content=url)
+            await interaction.followup.send(file=discord.File(my_article.path))
+            if my_article.has_warning:
+                await interaction.followup.send(my_article.warning)
+            os.remove(my_article.path)
         except (TypeError, FileNotFoundError):
-            await ctx.send("Echec de la commande. Réessayez, peut-être ?")
+            await interaction.followup.send("Echec de la commande. Réessayez, peut-être ?")
         finally:
+            await msg_wait.delete()
             logger.info("------------------")
 
 
-async def setup(bot):
+async def setup(bot) -> None:
     """
     Sets up the LeMonde cog for the provided Discord bot instance.
 
@@ -230,6 +196,7 @@ async def setup(bot):
 if __name__ == "__main__":
     # Testing lemonde pdf
     import platform
+
     from dotenv import load_dotenv
     # Parse a .env file and then load all the variables found as environment variables.
     load_dotenv()

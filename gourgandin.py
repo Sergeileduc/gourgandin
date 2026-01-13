@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
 """Awesome Discord Bot."""
 import argparse
 import asyncio
@@ -10,7 +9,6 @@ import platform
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-
 
 # Parse a .env file and then load all the variables found as environment variables.
 load_dotenv()
@@ -71,7 +69,7 @@ async def on_ready():
     if not bot.cogs_loaded:
         bot.guild = bot.get_guild(GUILD_ID)
         bot.nsfw_channel = discord.utils.get(bot.guild.text_channels, name=NSFW_BOT_CHANNEL)
-        bot.nsfw_channel_manual = discord.utils.get(bot.guild.text_channels, name=NSFW_MANUAL_CHANNEL)
+        bot.nsfw_channel_manual = discord.utils.get(bot.guild.text_channels, name=NSFW_MANUAL_CHANNEL)  # noqa: E501
 
         for ext in cogs_ext_list:
             await bot.load_extension(ext)

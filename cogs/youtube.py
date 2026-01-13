@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Youtube cog."""
 
 
@@ -6,21 +5,20 @@
 # See instructions for running these code samples locally:
 # https://developers.google.com/explorer-help/guides/code_samples#python
 
-import os
-import asyncio
 import html
 import logging
-from typing import NamedTuple, List, Tuple
+import os
+from typing import NamedTuple
 
 import discord
-from discord.ext import commands
 import googleapiclient.discovery
+from discord.ext import commands
 
 logger = logging.getLogger(__name__)
 
 TOKEN_YOUTUBE = os.getenv("TOKEN_YOUTUBE")
 
-TitleURL = Tuple[str, str]
+TitleURL = tuple[str, str]
 
 
 class Result(NamedTuple):  # pylint: disable=missing-class-docstring
@@ -38,7 +36,7 @@ def string_is_int(string: str) -> bool:  # pragma: no cover
         return False
 
 
-def search_youtube(user_input: str, number: int) -> List[Result]:
+def search_youtube(user_input: str, number: int) -> list[Result]:
     """Search on Youtube.
 
     Args:
@@ -111,7 +109,7 @@ def youtube_top_link(user_input: str) -> TitleURL:
         url = get_youtube_url(result)
         return result.title, url
     except IndexError:
-        logger.warning("No results found for %s" % user_input)
+        logger.warning("No results found for %s", user_input)
 
 
 def get_youtube_url(result: Result) -> str:
@@ -187,7 +185,7 @@ class Youtube(commands.Cog):
                     await self_message.delete(delay=None)
                     await msg.delete(delay=1)
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             await ctx.send("Tu as pris trop de temps pour répondre !",
                            delete_after=5)
             await self_message.delete(delay=None)

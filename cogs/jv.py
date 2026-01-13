@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
 """JV cog."""
 
 import contextlib
@@ -11,14 +10,14 @@ from urllib.parse import urljoin
 import aiohttp
 from bs4 import BeautifulSoup, Tag
 from dateparser.date import DateDataParser
-from discord import Embed, Interaction, ButtonStyle
+from discord import ButtonStyle, Embed, Interaction
 from discord.ext import commands
 from discord.ui import Button, View
 
 logger = logging.getLogger(__name__)
 
 headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',  # noqa: E501
     }
 ddp = DateDataParser(languages=["fr"])
 

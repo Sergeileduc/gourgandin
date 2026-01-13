@@ -48,10 +48,10 @@ class PronPics(commands.Cog):
                         async with session.get(url) as img_resp:
                             if img_resp.status == 200:
                                 img_data = await img_resp.read()
-                                file = discord.File(io.BytesIO(img_data), filename=url.split("/")[-1])
+                                file = discord.File(io.BytesIO(img_data), filename=url.split("/")[-1])  # noqa: E501
                                 await ctx.send(file=file)
                             else:
-                                await ctx.send(f"Impossible de télécharger {url} (status {img_resp.status})")
+                                await ctx.send(f"Impossible de télécharger {url} (status {img_resp.status})")  # noqa: E501
                 else:
                     text = await response.text()
                     print("Erreur:", response.status, text)

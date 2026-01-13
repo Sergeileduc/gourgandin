@@ -1,24 +1,21 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
 """Cog to get daily on bonjourmadame picture."""
 
 # Instructions :
 # put a file named redditbabes.txt in the directory
 # each line will be a subreddit that you want to get hourly
 
-import os
 import logging
+import os
 from pathlib import Path
 
 import asyncpraw  # pip install asyncpraw
-
 import discord
-from discord.ext import commands, tasks
 from discord import app_commands
+from discord.ext import commands, tasks
 
 from .reddit_client import get_reddit_client
 from .reddit_poster import RedditPoster
-
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +34,7 @@ async def load_subreddits(filename: str = "redditbabes.txt") -> list[str]:
 
     Returns:
         list[str]: Une liste de noms de subreddits. Retourne une liste vide si le fichier est introuvable.
-    """
+    """  # noqa: E501
     path = Path(__file__).parent / filename
     try:
         with path.open(mode="r", encoding="utf-8") as f:
@@ -128,7 +125,7 @@ class RedditBabes(commands.Cog):
         if payload.channel_id != self.bot.nsfw_channel.id:
             return
 
-        message: discord.Message = await self.bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
+        message: discord.Message = await self.bot.get_channel(payload.channel_id).fetch_message(payload.message_id)  # noqa: E501
         author = payload.member.display_name
         # we fetch previous messages, to get the message just before the image
         messages = [mess async for mess in message.channel.history(limit=2, before=message)]
@@ -143,7 +140,7 @@ class RedditBabes(commands.Cog):
     async def babes(self) -> None:
         """
         Tâche périodique qui interroge les subreddits configurés et publie les nouveaux contenus dans le canal Discord.
-        """
+        """  # noqa: E501
         logger.info("Entering hourly task.")
         subreddits = await load_subreddits()
         if not subreddits:
@@ -184,7 +181,9 @@ async def setup(bot):
 # main is for debugging purpose
 if __name__ == "__main__":
     import asyncio
+
     from dotenv import load_dotenv
+
     from .reddit_models import RedditSubmissionInfo
 
     # Parse a .env file and then load all the variables found as environment variables.

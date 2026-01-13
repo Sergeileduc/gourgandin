@@ -1,5 +1,5 @@
-from pathlib import Path
 import sys
+from pathlib import Path
 
 FILENAME = Path(__file__).parent / "redditbabes.txt"
 

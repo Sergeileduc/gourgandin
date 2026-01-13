@@ -10,12 +10,13 @@ Il fournit :
 Utilisé par reddit_poster.py pour alimenter les embeds Discord.
 """
 
-import asyncpraw
 import logging
 import os
-from dotenv import load_dotenv
-from .reddit_models import RedditSubmissionInfo
 
+import asyncpraw
+from dotenv import load_dotenv
+
+from .reddit_models import RedditSubmissionInfo
 
 logger = logging.getLogger(__name__)
 load_dotenv()
@@ -50,7 +51,7 @@ async def fetch_new_submissions(
 
     Returns:
         list[RedditSubmissionInfo]: Liste d'objets représentant les soumissions valides.
-    """
+    """  # noqa: E501
     subreddit = await reddit.subreddit(subreddit_name, fetch=True)
     logger.info("Fetching subreddit: %s", subreddit_name)
 

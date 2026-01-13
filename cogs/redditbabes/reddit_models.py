@@ -1,11 +1,9 @@
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
-
 import logging
-from typing import Optional
+from dataclasses import dataclass, field
+from datetime import UTC, datetime, timedelta
 
-from asyncpraw.models import Submission
 import discord
+from asyncpraw.models import Submission
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +17,7 @@ class RedditSubmissionInfo:
     author: str = field(init=False)
     is_album: bool = field(init=False)
     image_count: int = field(init=False)
-    image_url: Optional[str] = field(init=False)
+    image_url: str | None = field(init=False)
     created_at: datetime = field(init=False)
 
     def __post_init__(self):
@@ -27,10 +25,11 @@ class RedditSubmissionInfo:
         self.subreddit_name = self.submission.subreddit.display_name
         self.title = self.submission.title
         self.author = str(self.submission.author)
-        self.is_album = hasattr(self.submission, "media_metadata") and bool(self.submission.media_metadata)
+        self.is_album = (hasattr(self.submission, "media_metadata")
+                         and bool(self.submission.media_metadata))
         self.image_url = None
         self.image_count = 0
-        self.created_at = datetime.fromtimestamp(self.submission.created_utc, tz=timezone.utc)
+        self.created_at = datetime.fromtimestamp(self.submission.created_utc, tz=UTC)
         logger.debug(self.post_url)
 
         if self.is_album:
@@ -43,7 +42,7 @@ class RedditSubmissionInfo:
             self.image_count = 1
             logger.info("standard submission with one pic : %s", self.submission)
         else:
-            logger.error("something bad happened with picture for submission %s, we got this url %s", self.post_url, self.image_url)
+            logger.error("something bad happened with picture for submission %s, we got this url %s", self.post_url, self.image_url)  # noqa: E501
             raise RedditException("Impossible de trouver du contenu", self.submission.id)
         logger.debug("image url : %s", self.image_url)
 
@@ -60,11 +59,13 @@ class RedditSubmissionInfo:
             image_info = self.submission.media_metadata.get(first_media_id, {})
             self.image_url = image_info.get("s", {}).get("u")
             if not self.image_url:
-                raise RedditException("URL de l'image introuvable dans les métadonnées", self.submission.id)
+                raise RedditException("URL de l'image introuvable dans les métadonnées",
+                                      self.submission.id)
 
             self.image_count = len(items)
         except (AttributeError, TypeError, KeyError) as e:
-            raise RedditException(f"Erreur lors de l'extraction des images : {e}", self.submission.id)
+            raise RedditException(f"Erreur lors de l'extraction des images : {e}",
+                                  self.submission.id) from e
 
     def to_embed(self) -> discord.Embed:
         embed = discord.Embed(
@@ -83,10 +84,11 @@ class RedditSubmissionInfo:
     def is_younger(self, days: int = 1, hours: int = 0) -> bool:
         """Retourne True si le post est plus récent que la durée donnée."""
         delta = timedelta(days=days, hours=hours)
-        return datetime.now(timezone.utc) - self.created_at < delta
+        return datetime.now(UTC) - self.created_at < delta
 
 
 class RedditException(Exception):
     def __init__(self, message: str, submission_id: str = None):
         self.submission_id = submission_id
-        super().__init__(f"[RedditException] {message} (ID: {submission_id})" if submission_id else message)
+        super().__init__(f"[RedditException] {message} (ID: {submission_id})"
+                         if submission_id else message)

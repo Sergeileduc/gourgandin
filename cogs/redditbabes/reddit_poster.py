@@ -2,9 +2,11 @@ import logging
 
 import asyncpraw  # pip install asyncpraw
 import discord
-from .reddit_models import RedditException
-from .reddit_client import fetch_new_submissions
+
 from utils.tools import fetch_history
+
+from .reddit_client import fetch_new_submissions
+from .reddit_models import RedditException
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +23,7 @@ grâce à une mémoire des derniers messages envoyés par le bot.
         reddit (asyncpraw.Reddit): Instance du client Reddit utilisée pour interroger les subreddits.
         channel (discord.TextChannel): Canal Discord dans lequel les contenus seront publiés.
         bot_user (discord.ClientUser): Représente le bot Discord, utilisé pour filtrer les messages déjà envoyés.
-    """
+    """  # noqa: E501
 
     def __init__(
         self,
@@ -36,7 +38,7 @@ grâce à une mémoire des derniers messages envoyés par le bot.
             reddit (asyncpraw.Reddit): Instance du client Reddit utilisée pour interroger les subreddits.
             channel (discord.TextChannel): Canal Discord dans lequel les contenus seront publiés.
             bot_user (discord.ClientUser): Représente le bot Discord, utilisé pour filtrer les messages déjà envoyés.
-        """
+        """  # noqa: E501
         self.reddit: asyncpraw.Reddit = reddit
         self.channel: discord.TextChannel = channel
         self.bot_user: discord.ClientUser = bot_user
@@ -65,7 +67,7 @@ grâce à une mémoire des derniers messages envoyés par le bot.
 
         Args:
             sub (str): Le nom du subreddit à traiter.
-        """
+        """  # noqa: E501
         try:
             self.last_bot_messages = await self.fetch_recent_image_urls(limit=500)
             submissions = await fetch_new_submissions(self.reddit, sub, limit=10)

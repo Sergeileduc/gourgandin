@@ -1,6 +1,7 @@
 import os
-import discord
 from collections import Counter
+
+import discord
 from dotenv import load_dotenv
 
 # Charger les variables d'environnement

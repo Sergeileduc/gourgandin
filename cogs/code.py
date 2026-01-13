@@ -1,10 +1,9 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
 """Miscs cog."""
 
-import discord
 import logging
 
+import discord
 from discord import app_commands, ui
 from discord.ext import commands
 

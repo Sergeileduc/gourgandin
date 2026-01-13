@@ -9,4 +9,4 @@ requests-html
 lxml_html_clean
 asyncpraw
 backoff
-git+https://github.com/Sergeileduc/python-web-tools.git@main
+# git+https://github.com/Sergeileduc/python-web-tools.git@main
