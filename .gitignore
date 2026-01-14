@@ -41,3 +41,6 @@ out*.txt
 
 # devtools
 WARP.md
+
+# stuff
+*.pdf
