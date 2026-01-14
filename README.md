@@ -1,4 +1,5 @@
-![Ruff](https://img.shields.io/badge/code%20style-ruff-blue?logo=ruff) ![Ruff](https://github.com/Sergeileduc/gourgandin/actions/workflows/ruff.yml/badge.svg)
+![Ruff](https://img.shields.io/badge/style-ruff-0a7bff?logo=ruff&logoColor=white)
+![Ruff CI](https://github.com/Sergeileduc/gourgandin/actions/workflows/ruff.yml/badge.svg)
 
 # barmanbot
 
