@@ -3,38 +3,28 @@
 import asyncio
 import logging
 import os
-import random
 from typing import Literal
 
 import discord
-from discord import app_commands
-from discord.ext import commands
-
-# from reretry import retry
+from discord import Interaction, app_commands  # noqa: F401
+from discord.ext import commands  # noqa: F401
 from dotenv import load_dotenv
 from lemonde_sl import LeMondeAsync, MyArticle
+
+from utils.decorators import async_retry, dev_command
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 # logger.addHandler(logging.StreamHandler())
 
+
 # Retry
-TRIES = 10
+TRIES = 3
 DELAY = 2
-MAX_DELAY = None
+MAX_DELAY = 10
 BACKOFF = 1.2
 # JITTER = 0
 JITTER = (0, 1)
-
-
-def _new_delay(max_delay, backoff, jitter, delay):
-    delay *= backoff
-    delay += random.uniform(*jitter) if isinstance(jitter, tuple) else jitter
-
-    if max_delay is not None:
-        delay = min(delay, max_delay)
-
-    return delay
 
 
 async def get_article(url: str, mobile: bool, dark_mode: bool) -> MyArticle:
@@ -93,7 +83,11 @@ class LeMonde(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @app_commands.command(name="lemonde", description="Télécharge un article en PDF")
+    @dev_command(name="lemonde", description="Télécharge un article du Monde")
+    @app_commands.describe(
+        url="URL de l'article à télécharger",
+        mode="Choisir mobile et/ou dark theme",
+    )
     async def lemonde(
         self,
         interaction: discord.Interaction,
@@ -117,59 +111,64 @@ class LeMonde(commands.Cog):
             - Utilise `to_bool()` pour convertir les paramètres en booléens.
         """
 
-        mobile: bool = "Mobile" in mode
-        dark_mode: bool = "Dark" in mode
+        # --- CALLBACK POUR LE RETRY ---
+        async def retry_callback(attempt, delay, exc):
+            await interaction.followup.send(
+                f"Tentative {attempt} échouée — nouvel essai dans {delay:.2f}s…",
+                delete_after=delay + 1.9,
+            )
+
+        # --- FONCTION UTILITAIRE AVEC RETRY ---
+        @async_retry(
+            tries=TRIES,
+            delay=DELAY,
+            max_delay=MAX_DELAY,
+            backoff=BACKOFF,
+            jitter=JITTER,
+            exceptions=(asyncio.exceptions.TimeoutError,),
+            on_retry=retry_callback,
+        )
+        async def retry_get_article(url, mobile, dark_mode):
+            return await get_article(url=url, mobile=mobile, dark_mode=dark_mode)
+
+        # --- PARAMÈTRES ---
+        mobile = "Mobile" in mode
+        dark_mode = "Dark" in mode
 
         await interaction.response.defer(ephemeral=False)
 
-        # Log pour debug
         logger.info(
             f"Commande /lemonde appelée avec url={url}, mobile={mobile}, dark_mode={dark_mode}"
         )
+
         await interaction.followup.send(
             f"📄 Article: {url}\n📱 Mobile: {mobile}\n🌙 Mode sombre: {dark_mode}"
         )
 
-        # Retry
-        _tries, _delay = TRIES, DELAY
+        msg_wait = await interaction.followup.send("⏳ Traitement en cours…")
 
-        msg_wait = await interaction.followup.send("⏳ Traitement en cours…", ephemeral=False)
-        # While loop to retry fetching article, in case of Timeout errors
-        while _tries:
-            try:
-                my_article: MyArticle = await get_article(
-                    url=url, mobile=mobile, dark_mode=dark_mode
-                )
-                logger.info("out file ok")
-                break
-            except asyncio.exceptions.TimeoutError:
-                logger.warning("Timeout in retry code !!!")
-                _tries -= 1
-                logger.warning("Tries left = %d", _tries)
-
-                error_message = (
-                    "Erreur : Timeout. "
-                    f"Tentative {TRIES - _tries}/{TRIES} échec - "
-                    f"Nouvel essai dans {_delay:.2f} secondes..."
-                )
-                delete_after = _delay + 1.9
-                await interaction.followup.send(error_message, delete_after=delete_after)
-                if not _tries:
-                    raise
-
-                await asyncio.sleep(_delay)
-
-                _delay = _new_delay(MAX_DELAY, BACKOFF, JITTER, _delay)
-        # End of retry While loop
-
+        # --- APPEL AVEC RETRY ---
         try:
-            # await interaction.followup.send(content=url)
+            my_article: MyArticle = await retry_get_article(
+                url=url, mobile=mobile, dark_mode=dark_mode
+            )
+            logger.info("PDF généré avec succès")
+        except Exception as exc:
+            logger.error(f"Erreur fatale: {exc}")
+            await interaction.followup.send(
+                "❌ Impossible de récupérer l’article après plusieurs tentatives."
+            )
+            await msg_wait.delete()
+            return
+
+        # --- ENVOI DU PDF ---
+        try:
             await interaction.followup.send(file=discord.File(my_article.path))
             if my_article.has_warning:
                 await interaction.followup.send(my_article.warning)
             os.remove(my_article.path)
         except (TypeError, FileNotFoundError):
-            await interaction.followup.send("Echec de la commande. Réessayez, peut-être ?")
+            await interaction.followup.send("Echec de la commande. Réessayez peut-être.")
         finally:
             await msg_wait.delete()
             logger.info("------------------")
@@ -204,8 +203,14 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.DEBUG)
 
-    URL = "https://www.lemonde.fr/international/article/2024/10/03/face-a-l-iran-la-france-se-range-derriere-israel_6342763_3210.html"
+    # URL = "https://www.lemonde.fr/international/article/2024/10/03/face-a-l-iran-la-france-se-range-derriere-israel_6342763_3210.html"
+    URL = "https://www.lemonde.fr/societe/article/2024/10/05/proces-des-viols-de-mazan-le-huis-clos-leve-les-accuses-maintiennent-leur-version-apres-le-visionnage-des-videos_6344040_3224.html"
+    # URL = "https://www.lemonde.fr/les-decodeurs/article/2025/09/25/condamnation-de-nicolas-sarkozy-la-chronologie-complete-de-l-affaire-du-financement-libyen_6482596_4355771.html"
     if platform.system() == "Windows":
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-        asyncio.run(get_article(URL))
+    try:
+        asyncio.run(get_article(URL, mobile=True, dark_mode=True))
+    except OSError as e:
+        logger.error("Erreur OSError")
+        logger.error(e)
