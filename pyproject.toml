@@ -48,11 +48,11 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
-# [project.urls]
-# Homepage = "https://github.com/your/repo"
+[project.urls]
+Homepage = "https://github.com/Sergeileduc/gourgandin"
 # Documentation = "https://github.com/your/repo/docs"
-# Source = "https://github.com/your/repo"
-# Issues = "https://github.com/your/repo/issues"
+Source = "https://github.com/Sergeileduc/gourgandin"
+Issues = "https://github.com/Sergeileduc/gourgandin/issues"
 
 # ---------------------------------------------------------------------------
 
