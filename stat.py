@@ -36,11 +36,18 @@ async def analyze_channel(client: discord.Client):
     counter = Counter(first_words)
 
     exclusions = {
-        "Amateur", "Ass", "Big",
+        "Amateur",
+        "Ass",
+        "Big",
         "Boobs",
-        "Photographer", "Photographer:", "Selfportrait",
-        "[Mature", "Mature",
-        "Beautiful", "Cute", "Babe",
+        "Photographer",
+        "Photographer:",
+        "Selfportrait",
+        "[Mature",
+        "Mature",
+        "Beautiful",
+        "Cute",
+        "Babe",
     }
     for word in exclusions:
         counter.pop(word, None)
@@ -54,6 +61,7 @@ async def analyze_channel(client: discord.Client):
     print("```")
     print(report_bars_percent(counter, top_n=20, charset="unicode"))
     print("```")
+
 
 # --- point d’entrée ---
 if __name__ == "__main__":

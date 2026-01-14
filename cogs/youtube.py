@@ -56,13 +56,14 @@ def search_youtube(user_input: str, number: int) -> list[Result]:
     DEVELOPER_KEY = TOKEN_YOUTUBE
 
     youtube = googleapiclient.discovery.build(
-        api_service_name, api_version, developerKey=DEVELOPER_KEY,
-        cache_discovery=False)
+        api_service_name, api_version, developerKey=DEVELOPER_KEY, cache_discovery=False
+    )
 
-    request = youtube.search().list(part="snippet",  # pylint: disable=no-member
-                                    maxResults=number,
-                                    q=user_input
-                                    )
+    request = youtube.search().list(
+        part="snippet",  # pylint: disable=no-member
+        maxResults=number,
+        q=user_input,
+    )
     response = request.execute()
 
     items = response["items"]
@@ -70,22 +71,22 @@ def search_youtube(user_input: str, number: int) -> list[Result]:
     out = []
 
     for item in items:
-        title = html.unescape(item['snippet']['title'])
+        title = html.unescape(item["snippet"]["title"])
         try:
-            if item['id']['kind'] == "youtube#channel":
-                type_ = 'channel'
-                id_ = item['id']['channelId']
-            elif item['id']['kind'] == "youtube#playlist":
-                type_ = 'playlist'
-                id_ = item['id']['playlistId']
-            elif item['id']['kind'] == "youtube#video":
-                type_ = 'video'
-                id_ = item['id']['videoId']
+            if item["id"]["kind"] == "youtube#channel":
+                type_ = "channel"
+                id_ = item["id"]["channelId"]
+            elif item["id"]["kind"] == "youtube#playlist":
+                type_ = "playlist"
+                id_ = item["id"]["playlistId"]
+            elif item["id"]["kind"] == "youtube#video":
+                type_ = "video"
+                id_ = item["id"]["videoId"]
             else:
-                type_ = 'unknown'
+                type_ = "unknown"
                 id_ = "NoID"
         except KeyError:  # pragma: no cover
-            type_ = 'unknown'
+            type_ = "unknown"
             id_ = "NoID"
 
         out.append(Result(title=title, type_=type_, id_=id_))
@@ -114,11 +115,11 @@ def youtube_top_link(user_input: str) -> TitleURL:
 
 def get_youtube_url(result: Result) -> str:
     """Make youtube url of 'result' (video, playlist, or channel)."""
-    if result.type_ == 'channel':
+    if result.type_ == "channel":
         return f"https://www.youtube.com/channel/{result.id_}"
-    if result.type_ == 'playlist':
+    if result.type_ == "playlist":
         return f"https://www.youtube.com/playlist?list={result.id_}"
-    if result.type_ == 'video':
+    if result.type_ == "video":
         return f"https://www.youtube.com/watch?v={result.id_}"
     return None
 
@@ -143,6 +144,7 @@ class Youtube(commands.Cog):
 
         def check(message):
             return message == ctx.message
+
         await self.bot.wait_for("message_delete", check=check, timeout=1200)
         await link.delete(delay=None)
 
@@ -157,18 +159,23 @@ class Youtube(commands.Cog):
         num = num if num <= 10 else 10
         results = search_youtube(user_input=query, number=num)
         embed = discord.Embed(color=0xFF0000)
-        embed.set_footer(text="Tapez un nombre pour faire votre choix "
-                              "ou dites \"cancel\" pour annuler")
+        embed.set_footer(
+            text="Tapez un nombre pour faire votre choix " 'ou dites "cancel" pour annuler'
+        )
         for res in results:
             url = get_youtube_url(res)
-            embed.add_field(name=f"{results.index(res) + 1}.{res.type_}",
-                            value=f"[{res.title}]({url})", inline=False)
+            embed.add_field(
+                name=f"{results.index(res) + 1}.{res.type_}",
+                value=f"[{res.title}]({url})",
+                inline=False,
+            )
         self_message = await ctx.send(embed=embed)
 
         def check(message):
-            return (message.author == ctx.author
-                    and (message.content == "cancel"
-                         or string_is_int(message.content)))
+            return message.author == ctx.author and (
+                message.content == "cancel" or string_is_int(message.content)
+            )
+
         try:
             msg = await self.bot.wait_for("message", check=check, timeout=15)
             if msg.content == "cancel":
@@ -186,8 +193,7 @@ class Youtube(commands.Cog):
                     await msg.delete(delay=1)
 
         except TimeoutError:
-            await ctx.send("Tu as pris trop de temps pour répondre !",
-                           delete_after=5)
+            await ctx.send("Tu as pris trop de temps pour répondre !", delete_after=5)
             await self_message.delete(delay=None)
             await ctx.message.delete(delay=2)
 

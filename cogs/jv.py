@@ -17,8 +17,8 @@ from discord.ui import Button, View
 logger = logging.getLogger(__name__)
 
 headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',  # noqa: E501
-    }
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",  # noqa: E501
+}
 ddp = DateDataParser(languages=["fr"])
 
 DAY = timedelta(days=1)
@@ -36,7 +36,7 @@ class NewGame:
         self.platforms = platforms
         self.url = urljoin("https://www.jeuxvideo.com", part_url)
         try:
-            date_str = re.sub('Sortie: ', '', self.release)
+            date_str = re.sub("Sortie: ", "", self.release)
             self.date = ddp.get_date_data(date_str).date_obj.date()
         except AttributeError:
             self.date = date(year=3000, month=1, day=1)
@@ -46,11 +46,9 @@ class NewGame:
 
 
 class TimeButton(Button):
-    """Class for the buttons 'Jour', 'Semaine', 'Mois'
-    """
+    """Class for the buttons 'Jour', 'Semaine', 'Mois'"""
 
-    def __init__(self, label: str, row: int,
-                 delta: timedelta, embedtitle: str) -> None:
+    def __init__(self, label: str, row: int, delta: timedelta, embedtitle: str) -> None:
         """Each button has his own label, row, timedelta and embed title"""
         super().__init__(label=label, row=row)
         self.delta = delta
@@ -72,9 +70,7 @@ class TimeButton(Button):
                 value = f"{game.release}\n{game.platforms}\n{game.url}"
             else:
                 value = f"{game.release}\n{game.url}"
-            embed.add_field(name=game.name,
-                            value=value,
-                            inline=False)
+            embed.add_field(name=game.name, value=value, inline=False)
         await interaction.followup.send(embed=embed)
 
 
@@ -123,9 +119,20 @@ def generate_url(month: int, year: int, platform=None) -> str:
     Returns:
         str: url
     """
-    french_months = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin',
-                     'juillet', 'aout',
-                     'septembre', 'octobre', 'novembre', 'decembre']
+    french_months = [
+        "janvier",
+        "fevrier",
+        "mars",
+        "avril",
+        "mai",
+        "juin",
+        "juillet",
+        "aout",
+        "septembre",
+        "octobre",
+        "novembre",
+        "decembre",
+    ]
     french_m = french_months[month - 1]
     logger.debug("generate_url - platform: %s", platform)
     if platform == "PC":
@@ -211,8 +218,7 @@ async def fetch_time_delta(delta: timedelta, platform: str = None):
     new_month, new_year = next_month(int_month, int_year)
     url = generate_url(new_month, new_year, platform=platform)
     games += await fetch_month(url)
-    return [game for game in games
-            if (diff := game.date - today) <= delta and diff.days >= 0]
+    return [game for game in games if (diff := game.date - today) <= delta and diff.days >= 0]
 
 
 class JV(commands.Cog):

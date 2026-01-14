@@ -14,6 +14,7 @@ class FakeAsyncHistory:
         async def generator():
             for msg in self._messages:
                 yield msg
+
         return generator()
 
 

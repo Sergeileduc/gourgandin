@@ -20,6 +20,7 @@ headers = {
     )
 }
 
+
 async def latest_madame():
     """Fetch latest bonjourmadame img
 
@@ -30,9 +31,11 @@ async def latest_madame():
     """
     url = "https://www.bonjourmadame.fr/"
 
-    async with AsyncClient(headers=headers,
-                           follow_redirects=True,
-                           timeout=10.0,) as client:
+    async with AsyncClient(
+        headers=headers,
+        follow_redirects=True,
+        timeout=10.0,
+    ) as client:
         resp = await client.get(url)
         resp.raise_for_status()
 
@@ -71,7 +74,9 @@ class BonjourMadame(commands.Cog):
         self.bonjour_madame.start()  # pylint: disable=no-member
 
     # @tasks.loop(hours=24)
-    @tasks.loop(time=datetime.time(hour=9, minute=30))  # THIS WORKS, but with an offset (9h30 actually triggers at 10h30 in winter)  # noqa: E501
+    @tasks.loop(
+        time=datetime.time(hour=9, minute=30)
+    )  # THIS WORKS, but with an offset (9h30 actually triggers at 10h30 in winter)  # noqa: E501
     async def bonjour_madame(self):
         """Send daily bonjourmadame."""
         if not 0 <= datetime.date.today().weekday() <= 4:
@@ -85,7 +90,7 @@ class BonjourMadame(commands.Cog):
         if book:
             try:
                 p = Path(__file__).parent / "bonjour_exclude.txt"
-                with open(p, encoding='utf-8') as f:
+                with open(p, encoding="utf-8") as f:
                     excludes = f.read().splitlines()
             except FileNotFoundError:
                 logger.error("cogs/bonjour_excludes.txt is missing")

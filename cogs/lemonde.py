@@ -1,4 +1,5 @@
 """Lemonde -> PDF cog."""
+
 import asyncio
 import logging
 import os
@@ -84,7 +85,6 @@ async def get_article(url: str, mobile: bool, dark_mode: bool) -> MyArticle:
             mobile=mobile,
             dark=dark_mode,
         )
-
 
 
 class LeMonde(commands.Cog):
@@ -198,13 +198,14 @@ if __name__ == "__main__":
     import platform
 
     from dotenv import load_dotenv
+
     # Parse a .env file and then load all the variables found as environment variables.
     load_dotenv()
 
     logging.basicConfig(level=logging.DEBUG)
 
     URL = "https://www.lemonde.fr/international/article/2024/10/03/face-a-l-iran-la-france-se-range-derriere-israel_6342763_3210.html"
-    if platform.system() == 'Windows':
+    if platform.system() == "Windows":
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
         asyncio.run(get_article(URL))

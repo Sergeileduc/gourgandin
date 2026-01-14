@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """Awesome Discord Bot."""
+
 import argparse
 import asyncio
 import logging
@@ -19,19 +20,18 @@ GUILD_ID: int = int(os.getenv("GUILD_ID"))
 # Logging
 logging.basicConfig(level=logging.INFO)
 
-PREFIX: str = '!'
+PREFIX: str = "!"
 NSFW_BOT_CHANNEL: str = "nsfw-bot"
 NSFW_MANUAL_CHANNEL: str = "nsfw-manuel"
 
 # --debug option
 parser = argparse.ArgumentParser()
-parser.add_argument("-d", "--debug",
-                    help="change prefix to '?'", action="store_true")
+parser.add_argument("-d", "--debug", help="change prefix to '?'", action="store_true")
 args = parser.parse_args()
 if args.debug:
     logging.info("You are in debug mode.")
     logging.info("Prefix is now '?'")
-    PREFIX = '?'
+    PREFIX = "?"
     NSFW_BOT_CHANNEL: str = "test-bot"
     logging.basicConfig(level=logging.DEBUG)
 
@@ -41,18 +41,24 @@ intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 
-bot = commands.Bot(command_prefix=PREFIX, help_command=None,
-                   description=None, case_insensitive=True, intents=intents)
+bot = commands.Bot(
+    command_prefix=PREFIX,
+    help_command=None,
+    description=None,
+    case_insensitive=True,
+    intents=intents,
+)
 
-cogs_ext_list = ["cogs.bonjourmadame",
-                 "cogs.misc",
-                 "cogs.lemonde",
-                 "cogs.code",
-                 #  "cogs.jv",
-                 "cogs.redditbabes.redditbabes",
-                 "cogs.youtube",
-                 "cogs.nsfwapi",
-                 ]
+cogs_ext_list = [
+    "cogs.bonjourmadame",
+    "cogs.misc",
+    "cogs.lemonde",
+    "cogs.code",
+    #  "cogs.jv",
+    "cogs.redditbabes.redditbabes",
+    "cogs.youtube",
+    "cogs.nsfwapi",
+]
 
 # TODO : c'est un peu moche, setup_hook c'est quand même mieux que de charger dans on_ready,
 # mais on verra plus tard comment régler ça.
@@ -62,14 +68,16 @@ bot.cogs_loaded = False
 @bot.event
 async def on_ready():
     """Log in Discord."""
-    logging.info('Logged in as')
+    logging.info("Logged in as")
     logging.info(bot.user.name)
     logging.info(bot.user.id)
 
     if not bot.cogs_loaded:
         bot.guild = bot.get_guild(GUILD_ID)
         bot.nsfw_channel = discord.utils.get(bot.guild.text_channels, name=NSFW_BOT_CHANNEL)
-        bot.nsfw_channel_manual = discord.utils.get(bot.guild.text_channels, name=NSFW_MANUAL_CHANNEL)  # noqa: E501
+        bot.nsfw_channel_manual = discord.utils.get(
+            bot.guild.text_channels, name=NSFW_MANUAL_CHANNEL
+        )  # noqa: E501
 
         for ext in cogs_ext_list:
             await bot.load_extension(ext)
@@ -104,7 +112,7 @@ async def on_ready():
 
 
 if __name__ == "__main__":
-    if platform.system() == 'Windows':
+    if platform.system() == "Windows":
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     logging.info("New bot with discord.py version %s", discord.__version__)
     bot.run(TOKEN)

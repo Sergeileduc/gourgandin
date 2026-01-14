@@ -13,16 +13,16 @@ logger = logging.getLogger(__name__)
 
 class RedditPoster:
     """
-    Gère la récupération et la publication de contenus Reddit dans un canal Discord.
+        Gère la récupération et la publication de contenus Reddit dans un canal Discord.
 
-    Cette classe encapsule les dépendances nécessaires pour publier des images issues de Reddit
-    dans un canal Discord. Elle permet de traiter plusieurs subreddits tout en évitant les doublons
-grâce à une mémoire des derniers messages envoyés par le bot.
+        Cette classe encapsule les dépendances nécessaires pour publier des images issues de Reddit
+        dans un canal Discord. Elle permet de traiter plusieurs subreddits tout en évitant les doublons
+    grâce à une mémoire des derniers messages envoyés par le bot.
 
-    Args:
-        reddit (asyncpraw.Reddit): Instance du client Reddit utilisée pour interroger les subreddits.
-        channel (discord.TextChannel): Canal Discord dans lequel les contenus seront publiés.
-        bot_user (discord.ClientUser): Représente le bot Discord, utilisé pour filtrer les messages déjà envoyés.
+        Args:
+            reddit (asyncpraw.Reddit): Instance du client Reddit utilisée pour interroger les subreddits.
+            channel (discord.TextChannel): Canal Discord dans lequel les contenus seront publiés.
+            bot_user (discord.ClientUser): Représente le bot Discord, utilisé pour filtrer les messages déjà envoyés.
     """  # noqa: E501
 
     def __init__(
@@ -74,8 +74,9 @@ grâce à une mémoire des derniers messages envoyés par le bot.
 
             for sub_object in submissions:
                 try:
-                    if (sub_object.image_url not in self.last_bot_messages
-                            and sub_object.is_younger(hours=3)):
+                    if sub_object.image_url not in self.last_bot_messages and sub_object.is_younger(
+                        hours=3
+                    ):
                         embed = sub_object.to_embed()
                         await self.channel.send(embed=embed)
                         await self.channel.send(sub_object.image_url)

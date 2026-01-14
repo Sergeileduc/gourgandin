@@ -9,7 +9,9 @@ from discord.utils import find as disc_find
 
 logger = logging.getLogger(__name__)
 
-headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}  # noqa:E501
+headers = {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"  # noqa:E501
+}
 
 
 def string_is_int(string: str) -> bool:  # pragma: no cover
@@ -25,14 +27,22 @@ def args_separator_for_log_function(guild, args):
     """Check the args if there are user, channel and command."""
     if not args:
         return [None, None, None]
-    commands = ['kick', 'clear', 'ban']
-    [user, command, channel] = [None, None, None]  # They are defaulted to None, if any of them is specified, it will be changed  # noqa:E501
+    commands = ["kick", "clear", "ban"]
+    [user, command, channel] = [
+        None,
+        None,
+        None,
+    ]  # They are defaulted to None, if any of them is specified, it will be changed  # noqa:E501
     for word in args:
         # if disc_get(guild.members, name=word) is not None: # if word is a member of the guild  # noqa:E501
-        if disc_find(lambda m: m.name.lower() == word.lower(), guild.members) is not None:  # same, but case insensitive  # noqa:E501,B023
+        if (
+            disc_find(lambda m: m.name.lower() == word.lower(), guild.members) is not None  # noqa:E501,B023
+        ):  # same, but case insensitive
             user = word.lower()
         # elif disc_get(guild.text_channels, name=word) is not None: # if word is a channel of the guild  # noqa:E501
-        elif disc_find(lambda t: t.name.lower() == word.lower(), guild.text_channels) is not None:  # same, but case insensitive  # noqa:E501,B023
+        elif (
+            disc_find(lambda t: t.name.lower() == word.lower(), guild.text_channels) is not None  # noqa:E501,B023
+        ):  # same, but case insensitive
             channel = word.lower()
         elif word in commands:  # if word is a command
             command = word.lower()
@@ -48,10 +58,7 @@ def args_separator_for_log_function(guild, args):
 # this function can be reused. it's not a bug if we define it in get_last_bot_messages again.
 # it's because of the decorator...
 @backoff.on_exception(backoff.expo, discord.DiscordServerError, max_tries=5)
-async def fetch_history(
-    channel: discord.TextChannel,
-    limit: int = 500
-) -> list[discord.Message]:
+async def fetch_history(channel: discord.TextChannel, limit: int = 500) -> list[discord.Message]:
     """
     Récupère l'historique des messages d'un canal Discord avec stratégie de retry en cas d'erreur serveur.
 
@@ -74,7 +81,7 @@ async def get_last_bot_messages(
     channel: discord.TextChannel,
     bot_user: discord.ClientUser,
     max_tries: int = 5,
-    history_limit: int = 500
+    history_limit: int = 500,
 ) -> list[str]:
     """
     Récupère les messages récemment envoyés par le bot dans un canal Discord.
@@ -96,10 +103,12 @@ async def get_last_bot_messages(
         list[str]: Liste des contenus textuels des messages envoyés par le bot.
                    Retourne une liste vide en cas d'échec.
     """
+
     async def fetch_history() -> list[discord.Message]:
         @backoff.on_exception(backoff.expo, discord.DiscordServerError, max_tries=max_tries)
         async def inner() -> list[discord.Message]:
             return [message async for message in channel.history(limit=history_limit)]
+
         return await inner()
 
     try:
@@ -111,9 +120,9 @@ async def get_last_bot_messages(
     return [message.content for message in history if message.author == bot_user]
 
 
-def get_channel_by_name(bot: commands.Bot,
-                        guild_id: int,
-                        channel_name: str) -> discord.TextChannel | None:
+def get_channel_by_name(
+    bot: commands.Bot, guild_id: int, channel_name: str
+) -> discord.TextChannel | None:
     """
     Resolve a text channel by its name within a given guild.
 

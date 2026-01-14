@@ -67,6 +67,7 @@ async def save_subreddits(subreddits: list[str], filename: str = "redditbabes.tx
 
 ########################
 
+
 class RedditGroup(app_commands.Group):
     def __init__(self):
         super().__init__(name="reddit", description="Gestion des subreddits")
@@ -100,6 +101,7 @@ class RedditGroup(app_commands.Group):
         await save_subreddits(subs)
         await interaction.response.send_message(f"🗑️ {name} supprimé.")
 
+
 ########################
 
 
@@ -109,10 +111,11 @@ class RedditBabes(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.reddit = get_reddit_client()  # depuis reddit_client.py
-        self.poster = RedditPoster(reddit=self.reddit,
-                                   channel=self.bot.nsfw_channel,
-                                   bot_user=self.bot.user,
-                                   )  # depuis reddit_poster.py
+        self.poster = RedditPoster(
+            reddit=self.reddit,
+            channel=self.bot.nsfw_channel,
+            bot_user=self.bot.user,
+        )  # depuis reddit_poster.py
         self.babes.start()  # pylint: disable=no-member
 
         # 👉 Ajout du groupe slash commands au tree
@@ -125,15 +128,18 @@ class RedditBabes(commands.Cog):
         if payload.channel_id != self.bot.nsfw_channel.id:
             return
 
-        message: discord.Message = await self.bot.get_channel(payload.channel_id).fetch_message(payload.message_id)  # noqa: E501
+        message: discord.Message = await self.bot.get_channel(payload.channel_id).fetch_message(
+            payload.message_id
+        )  # noqa: E501
         author = payload.member.display_name
         # we fetch previous messages, to get the message just before the image
         messages = [mess async for mess in message.channel.history(limit=2, before=message)]
         # the previous message shoud be :
         desc_message: discord.Message = messages[0]
         # sending both messages
-        await self.bot.nsfw_channel_manual.send(content=f"{author} vous a partagé ceci :",
-                                                embed=desc_message.embeds[0])
+        await self.bot.nsfw_channel_manual.send(
+            content=f"{author} vous a partagé ceci :", embed=desc_message.embeds[0]
+        )
         await self.bot.nsfw_channel_manual.send(message.content)
 
     @tasks.loop(hours=1)  # checks the babes subreddit every hour
@@ -199,9 +205,9 @@ if __name__ == "__main__":
     logger.addHandler(console_handler)
 
     async def main():
-        reddit = asyncpraw.Reddit(client_id=REDDIT_ID,
-                                  client_secret=REDDIT_SECRET,
-                                  user_agent=REDDIT_AGENT)
+        reddit = asyncpraw.Reddit(
+            client_id=REDDIT_ID, client_secret=REDDIT_SECRET, user_agent=REDDIT_AGENT
+        )
 
         logger.info("Reddit ok.")
 

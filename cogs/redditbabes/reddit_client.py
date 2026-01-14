@@ -31,14 +31,12 @@ def get_reddit_client() -> asyncpraw.Reddit:
     return asyncpraw.Reddit(
         client_id=os.environ["REDDIT_ID"],
         client_secret=os.environ["REDDIT_SECRET"],
-        user_agent=os.environ["REDDIT_AGENT"]
+        user_agent=os.environ["REDDIT_AGENT"],
     )
 
 
 async def fetch_new_submissions(
-    reddit: asyncpraw.Reddit,
-    subreddit_name: str,
-    limit: int = 10
+    reddit: asyncpraw.Reddit, subreddit_name: str, limit: int = 10
 ) -> list[RedditSubmissionInfo]:
     """
     Récupère les dernières soumissions d'un subreddit donné, en filtrant les posts stickés ou supprimés,
