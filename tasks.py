@@ -1,4 +1,5 @@
 import contextlib
+import json
 import os
 import shutil
 import subprocess
@@ -24,6 +25,9 @@ or
 `source <(inv --print-completion-script zsh)`
 (or add it to ~/.zshrc or ~/.bashrc)
 """
+
+
+PROJECT = "gourgandin"
 
 
 # UTILS -----------------------------------------------------------------------
@@ -57,7 +61,8 @@ def get_index_path():
 @task
 def lint(c):
     """flake8 - static check for python files"""
-    c.run("flake8")
+    c.run("ruff check .", echo=True)
+    c.run("mypy", echo=True)
 
 
 @task
@@ -131,3 +136,55 @@ def run(c):
 def deploy(c):
     """Deploy bot on fly.io"""
     c.run("flyctl deploy")
+
+
+@task
+def dockerbuild(c):
+    """Build docker."""
+    c.run(f"docker build -t {PROJECT} .")
+
+
+@task
+def dockerrun(c):
+    """Run docker."""
+    # command = f'docker run --rm -v "$(Get-Location):/app" --env-file .env {PROJECT}'
+    cwd = os.getcwd().replace("\\", "/")  # Docker aime les slashs
+    c.run(f'docker run --rm -v "{cwd}:/app" --env-file .env {PROJECT}')
+
+
+def get_machine_id():
+    data = json.loads(
+        __import__("subprocess").check_output(["fly", "machines", "list", "--json"]).decode()
+    )
+    return data[0]["id"]
+
+
+@task
+def flystop(ctx):
+    mid = get_machine_id()
+    ctx.run(f"fly machine stop {mid}", echo=True)
+
+
+@task
+def flystart(ctx):
+    mid = get_machine_id()
+    ctx.run(f"fly machine start {mid}", echo=True)
+
+
+@task
+def flydeploy(ctx):
+    ctx.run("fly deploy", echo=True)
+
+
+# @task(pre=[stop])
+# def test_local(ctx):
+#     ctx.run("docker run --rm -it myimage:latest", pty=True)
+
+# @task(pre=[deploy])
+# def restart(ctx):
+#     mid = get_machine_id()
+#     ctx.run(f"fly machine start {mid}", pty=True)
+
+# @task(pre=[stop, test_local, deploy, start])
+# def full(ctx):
+#     pass

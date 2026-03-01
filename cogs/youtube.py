@@ -133,7 +133,7 @@ class Youtube(commands.Cog):
         self.bot = bot
 
     @commands.hybrid_command()
-    async def youtube(self, ctx, *, query: str):
+    async def youtube(self, ctx, *, query: str) -> None:
         """Send first Youtube search result.
 
         Args:
@@ -149,7 +149,7 @@ class Youtube(commands.Cog):
         await link.delete(delay=None)
 
     @commands.hybrid_command()
-    async def youtubelist(self, ctx, num: int, *, query: str):
+    async def youtubelist(self, ctx, num: int, *, query: str) -> None:
         """Send <n> Youtube search results.
 
         Args:

@@ -8,7 +8,7 @@ allow-direct-references = true
 
 [project]
 name = "gourgandin"
-version = "0.1.0"
+version = "1.0.0"
 description = "Just a discord bot"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -24,18 +24,16 @@ dependencies = [
     "backoff",
     "bs4",
     "dateparser",
-    "discord",
-    "dotenv",
+    "discord.py>=2.7.0",
+    "python-dotenv",
     "rich",
-    # "httpx",
-    # "selectolax",
-    "pdfkit",
-    # "playwright",
-    "requests_html",
-    "lxml_html_clean",
+    "httpx",
+    "selectolax",
+    # "requests_html",
+    # "lxml_html_clean",
     "google-api-python-client",
     # "python-web-tools-sl @ git+https://github.com/Sergeileduc/python-web-tools.git",
-    "lemonde-sl @ git+https://github.com/Sergeileduc/lemonde-sl.git",
+    "lemonde-sl @ git+https://github.com/Sergeileduc/lemonde-sl.git@v2.2.1-pdfkit",
 ]
 
 # Classifiers PyPI (bonne pratique)
@@ -73,7 +71,7 @@ dev = [
 [tool.ruff]
 # Linter + formatter + import sorter
 line-length = 100
-target-version = "py312"
+target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP"]
@@ -87,7 +85,7 @@ line-ending = "lf"
 # ---------------------------------------------------------------------------
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.13"
 warn_unused_configs = true
 warn_unused_ignores = true
 warn_return_any = true

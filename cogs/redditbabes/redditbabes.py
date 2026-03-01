@@ -73,7 +73,7 @@ class RedditGroup(app_commands.Group):
         super().__init__(name="reddit", description="Gestion des subreddits")
 
     @app_commands.command(name="list", description="Lister les subreddits")
-    async def list_subs(self, interaction: discord.Interaction):
+    async def list_subs(self, interaction: discord.Interaction) -> None:
         subs = await load_subreddits()
         if not subs:
             await interaction.response.send_message("📂 Aucun subreddit enregistré.")
@@ -82,7 +82,7 @@ class RedditGroup(app_commands.Group):
             await interaction.response.send_message(f"📜 Liste des subreddits :\n{msg}")
 
     @app_commands.command(name="add", description="Ajouter un subreddit")
-    async def add_sub(self, interaction: discord.Interaction, name: str):
+    async def add_sub(self, interaction: discord.Interaction, name: str) -> None:
         subs = await load_subreddits()
         if name in subs:
             await interaction.response.send_message(f"⚠️ {name} est déjà dans la liste.")
@@ -92,7 +92,7 @@ class RedditGroup(app_commands.Group):
         await interaction.response.send_message(f"✅ {name} ajouté.")
 
     @app_commands.command(name="remove", description="Supprimer un subreddit")
-    async def remove_sub(self, interaction: discord.Interaction, name: str):
+    async def remove_sub(self, interaction: discord.Interaction, name: str) -> None:
         subs = await load_subreddits()
         if name not in subs:
             await interaction.response.send_message(f"❌ {name} n’est pas dans la liste.")
@@ -113,8 +113,8 @@ class RedditBabes(commands.Cog):
         self.reddit = get_reddit_client()  # depuis reddit_client.py
         self.poster = RedditPoster(
             reddit=self.reddit,
-            channel=self.bot.nsfw_channel,
-            bot_user=self.bot.user,
+            channel=self.bot.nsfw_channel,  # type: ignore[attr-defined]
+            bot_user=self.bot.user,  # type: ignore[attr-defined]
         )  # depuis reddit_poster.py
         self.babes.start()  # pylint: disable=no-member
 
@@ -122,22 +122,25 @@ class RedditBabes(commands.Cog):
         self.bot.tree.add_command(RedditGroup())
 
     @commands.Cog.listener()
-    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
+    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent) -> None:
         """Send reddit in another channel on reaction."""
 
-        if payload.channel_id != self.bot.nsfw_channel.id:
+        if payload.channel_id != self.bot.nsfw_channel.id:  # type: ignore[attr-defined]
             return
 
-        message: discord.Message = await self.bot.get_channel(payload.channel_id).fetch_message(
-            payload.message_id
-        )  # noqa: E501
-        author = payload.member.display_name
+        # message: discord.Message = await self.bot.get_channel(payload.channel_id).fetch_message(
+        #     payload.message_id
+        # )  # noqa: E501
+        channel = self.bot.get_partial_messageable(payload.channel_id)
+        message = await channel.fetch_message(payload.message_id)
+
+        author = payload.member.display_name if payload.member else None
         # we fetch previous messages, to get the message just before the image
         messages = [mess async for mess in message.channel.history(limit=2, before=message)]
         # the previous message shoud be :
         desc_message: discord.Message = messages[0]
         # sending both messages
-        await self.bot.nsfw_channel_manual.send(
+        await self.bot.nsfw_channel_manual.send(  # type: ignore[attr-defined]
             content=f"{author} vous a partagé ceci :", embed=desc_message.embeds[0]
         )
         await self.bot.nsfw_channel_manual.send(message.content)

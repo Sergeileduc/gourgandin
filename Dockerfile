@@ -6,20 +6,44 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# ÉTAPE X: Installation de wkhtmltopdf (et autres trucs)
+# # FOR WEASYPRINT
+# 1- Dépendances système pour WeasyPrint
+# RUN apt-get update && apt-get install -y --no-install-recommends \
+    # libcairo2 \
+    # pango1.0-tools \
+    # libpango-1.0-0 \
+    # libpangocairo-1.0-0 \
+    # libgdk-pixbuf2.0-0 \
+    # libffi8 \
+    # libxml2 \
+    # libxslt1.1 \
+    # libjpeg62-turbo \
+    # libpng16-16 \
+    # libfreetype6 \
+    # libharfbuzz0b \
+    # git \
+    # && rm -rf /var/lib/apt/lists/*
+# FOR PDFKIT
+# 1- Dépendances système pour PDFKIT
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl gnupg wkhtmltopdf \
-    libxrender1 libfontconfig1 libnss3 libxss1 libasound2 libatk1.0-0 \
-    libatk-bridge2.0-0 libcups2 libdrm2 libgbm1 libxkbcommon0 libgtk-3-0 libglib2.0-0 \
     git \
+    wkhtmltopdf \
+    libxrender1 \
+    libxext6 \
+    libfontconfig1 \
+    libfreetype6 \
+    libx11-6 \
+    fontconfig \
+    fonts-dejavu-core \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# ÉTAPE X: Installation des dépendances Python
+# 2- Installation des dépendances Python
 COPY pyproject.toml /app/
 COPY . /app/
 RUN pip install --no-cache-dir .
 
-# ÉTAPE X : Télécharge et installe les binaires des navigateurs (Chromium ici)
+# 3- Télécharge et installe les binaires des navigateurs (Chromium ici)
 # RUN python -m playwright install --with-deps chromium
 
 # COPY . /app/

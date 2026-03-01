@@ -26,7 +26,7 @@ class PronPics(commands.Cog):
         self.bot: commands.Bot = bot
 
     @commands.hybrid_command()
-    async def pornpics(self, ctx: commands.Context, tag: str):
+    async def pornpics(self, ctx: commands.Context, tag: str) -> None:
         """Send images of a tag."""
 
         await ctx.defer(ephemeral=False)

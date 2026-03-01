@@ -14,13 +14,14 @@ class Misc(commands.Cog):
         self.bot: commands.Bot = bot
 
     @commands.hybrid_command()
-    async def ping(self, ctx: commands.Context):
+    async def ping(self, ctx: commands.Context) -> None:
         """Ping the bot."""
         await ctx.send("Ping ! Pang ! Pong !")
+        logger.info("command !/ping was called")
 
     @commands.hybrid_command()
     @commands.has_any_role("modo", "Admin")
-    async def sync(self, ctx: commands.Context):
+    async def sync(self, ctx: commands.Context) -> None:
         """Sync the / commands on discord."""
         await ctx.defer(ephemeral=False)
         await self.bot.tree.sync()
@@ -31,9 +32,10 @@ class Misc(commands.Cog):
 
     @commands.hybrid_command()
     @commands.has_any_role("modo", "Admin")
-    async def sing(self, ctx: commands.Context):
+    async def sing(self, ctx: commands.Context) -> None:
         """Just sing."""
         await ctx.send("https://media.tenor.com/De6M1HsMZSEAAAAC/mariah-carey.gif")
+        logger.info("command !/sing was called.")
 
 
 async def setup(bot):

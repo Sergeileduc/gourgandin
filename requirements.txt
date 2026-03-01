@@ -1,12 +1,10 @@
-discord.py
-python-dotenv>=1
-beautifulsoup4
-pdfkit
-aiohttp
-google-api-python-client
-dateparser
-requests-html
-lxml_html_clean
-asyncpraw
-backoff
-# git+https://github.com/Sergeileduc/python-web-tools.git@main
+# discord.py
+# python-dotenv>=1
+# beautifulsoup4
+# aiohttp
+# google-api-python-client
+# dateparser
+# requests-html
+# asyncpraw
+# backoff
+# # git+https://github.com/Sergeileduc/python-web-tools.git@main

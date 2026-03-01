@@ -149,7 +149,7 @@ def generate_url(month: int, year: int, platform=None) -> str:
         return None
 
 
-def next_month(month: int, year: int):
+def next_month(month: int, year: int) -> tuple[int, int]:
     """Return a tuple of month and year for next month.
 
     Args:
