@@ -5,8 +5,7 @@ import logging
 import os
 
 # from typing import Literal
-import discord
-from discord import Interaction, app_commands  # noqa: F401
+from discord import File, Interaction, Message, app_commands  # noqa: F401
 from discord.ext import commands  # noqa: F401
 from dotenv import load_dotenv
 from lemonde_sl import LeMondeAsync, MyArticle
@@ -109,7 +108,7 @@ class LeMonde(commands.Cog):
     )
     async def lemonde(
         self,
-        interaction: discord.Interaction,
+        interaction: Interaction,
         url: str,
         # mode: Literal[
         #     "Normal Clair", "Normal Dark", "Mobile Clair", "Mobile Dark"
@@ -169,7 +168,7 @@ class LeMonde(commands.Cog):
             f"📄 Article: {url}"
         )
 
-        msg_wait: discord.Message = await interaction.followup.send("⏳ Traitement en cours…")  # type: ignore[func-returns-value,assignment]  # noqa: E501
+        msg_wait: Message = await interaction.followup.send("⏳ Traitement en cours…")  # type: ignore[func-returns-value,assignment]  # noqa: E501
 
         # --- APPEL AVEC RETRY ---
         try:
@@ -188,7 +187,7 @@ class LeMonde(commands.Cog):
 
         # --- ENVOI DU PDF ---
         try:
-            paths = [discord.File(article.path) for article in articles]
+            paths = [File(article.path) for article in articles]  # File is discord.File
 
             await interaction.followup.send(files=paths)
             for my_article in articles:
