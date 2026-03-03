@@ -31,11 +31,11 @@ class RedditSubmissionInfo:
         self.image_url = None
         self.image_count = 0
         self.created_at = datetime.fromtimestamp(self.submission.created_utc, tz=UTC)
-        logger.debug(self.post_url)
+        logger.info("\t🧵 self.post_url : %s", self.post_url)
 
         if self.is_album:
-            logger.info("that's an album %s", self.post_url)
-            logger.info("getting the first image for %s", self.submission)
+            logger.info("\t  📔 that's an album %s", self.post_url)
+            logger.info("\t  📔 getting the first image for %s", self.submission)
             self._extract_album_info()
         elif (
             self.submission.url.endswith((".jpg", ".jpeg", ".png", ".gif", ".webp"))
@@ -43,37 +43,56 @@ class RedditSubmissionInfo:
         ):
             self.image_url = self.submission.url
             self.image_count = 1
-            logger.info("standard submission with one pic : %s", self.submission)
+            logger.info("\t  🍑 standard submission with one pic : %s", self.submission)
         else:
             logger.error(
                 "something bad happened with picture for submission %s, we got this url %s",
                 self.post_url,
                 self.image_url,
             )  # noqa: E501
-            raise RedditException("Impossible de trouver du contenu", self.submission.id)
-        logger.debug("image url : %s", self.image_url)
+            print("submission URL : ", self.submission.url)
+            print("submission ID : ", self.submission.id)
+            raise RedditException(
+                "Impossible de trouver du contenu",
+                submission_id=self.submission.id,
+                url=self.post_url,
+            )
+        logger.info("\t  🖼️ self.image_url : %s", self.image_url)
 
     def _extract_album_info(self):
         try:
             items = self.submission.gallery_data.get("items", [])
             if not isinstance(items, list) or not items:
-                raise RedditException("Aucune image trouvée dans l'album", self.submission.id)
+                raise RedditException(
+                    "Aucune image trouvée dans l'album",
+                    submission_id=self.submission.id,
+                    url=self.post_url,
+                )
 
             first_media_id = items[0].get("media_id")
             if not first_media_id:
-                raise RedditException("media_id manquant dans le premier item", self.submission.id)
+                raise RedditException(
+                    "media_id manquant dans le premier item",
+                    submission_id=self.submission.id,
+                    url=self.post_url,
+                )
 
             image_info = self.submission.media_metadata.get(first_media_id, {})
             self.image_url = image_info.get("s", {}).get("u")
+            logger.warning("\t  🖼️ Image found in album : %s", self.image_url)
             if not self.image_url:
                 raise RedditException(
-                    "URL de l'image introuvable dans les métadonnées", self.submission.id
+                    "URL de l'image introuvable dans les métadonnées",
+                    submission_id=self.submission.id,
+                    url=self.post_url,
                 )
 
             self.image_count = len(items)
         except (AttributeError, TypeError, KeyError) as e:
             raise RedditException(
-                f"Erreur lors de l'extraction des images : {e}", self.submission.id
+                f"Erreur lors de l'extraction des images : {e}",
+                submission_id=self.submission.id,
+                url=self.post_url,
             ) from e
 
     def to_embed(self) -> discord.Embed:
@@ -99,8 +118,10 @@ class RedditSubmissionInfo:
 
 
 class RedditException(Exception):
-    def __init__(self, message: str, submission_id: str = None):
+    def __init__(self, message: str, submission_id: str | None = None, url: str | None = None):
         self.submission_id = submission_id
         super().__init__(
-            f"[RedditException] {message} (ID: {submission_id})" if submission_id else message
+            f"[RedditException] {message} (ID: {submission_id})\n{url}"
+            if (submission_id and url)
+            else message
         )

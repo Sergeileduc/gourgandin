@@ -114,7 +114,7 @@ class RedditBabes(commands.Cog):
         self.poster = RedditPoster(
             reddit=self.reddit,
             channel=self.bot.nsfw_channel,  # type: ignore[attr-defined]
-            bot_user=self.bot.user,  # type: ignore[attr-defined]
+            bot_user=self.bot.user,  # type: ignore[arg-type]
         )  # depuis reddit_poster.py
         self.babes.start()  # pylint: disable=no-member
 
@@ -143,14 +143,14 @@ class RedditBabes(commands.Cog):
         await self.bot.nsfw_channel_manual.send(  # type: ignore[attr-defined]
             content=f"{author} vous a partagé ceci :", embed=desc_message.embeds[0]
         )
-        await self.bot.nsfw_channel_manual.send(message.content)
+        await self.bot.nsfw_channel_manual.send(message.content)  # type: ignore[attr-defined]
 
     @tasks.loop(hours=1)  # checks the babes subreddit every hour
     async def babes(self) -> None:
         """
         Tâche périodique qui interroge les subreddits configurés et publie les nouveaux contenus dans le canal Discord.
         """  # noqa: E501
-        logger.info("Entering hourly task.")
+        logger.info("🕒 Entering hourly task.")
         subreddits = await load_subreddits()
         if not subreddits:
             logger.warning("Aucun subreddit à traiter.")
@@ -162,7 +162,7 @@ class RedditBabes(commands.Cog):
             except Exception as e:
                 logger.error("Erreur lors du traitement du subreddit %s : %s", sub, e)
 
-        logger.info("Exiting hourly task.")
+        logger.info("🕒 Exiting hourly task.")
 
     @babes.before_loop
     async def before_babes(self):
@@ -184,16 +184,20 @@ async def setup(bot):
         None
     """
     await bot.add_cog(RedditBabes(bot))
-    logger.info("RedditBabes cog added")
+    logger.info("⚙️ Cog RedditBabes og added")
 
 
 # main is for debugging purpose
-if __name__ == "__main__":
+if __name__ == "__main__":  # python -m cogs.redditbabes.redditbabes from root folder
     import asyncio
+    import json  # noqa: F401
+    from collections.abc import AsyncIterable, AsyncIterator
+    from typing import TypeVar
 
+    from asyncpraw.models import Submission
     from dotenv import load_dotenv
 
-    from .reddit_models import RedditSubmissionInfo
+    T = TypeVar("T")
 
     # Parse a .env file and then load all the variables found as environment variables.
     load_dotenv()
@@ -202,35 +206,118 @@ if __name__ == "__main__":
     REDDIT_SECRET = os.getenv("REDDIT_SECRET")
     REDDIT_AGENT = os.getenv("REDDIT_AGENT")
 
-    logger.setLevel(logging.DEBUG)
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.DEBUG)
-    logger.addHandler(console_handler)
+    # logger.setLevel(logging.DEBUG)
+    # console_handler = logging.StreamHandler()
+    # console_handler.setLevel(logging.DEBUG)
+    # logger.addHandler(console_handler)
+    logging.basicConfig(level=logging.INFO)
+
+    logger.debug("ceci est un message de debug")
+
+    async def aenumerate[T](
+        aiter: AsyncIterable[T], start: int = 0
+    ) -> AsyncIterator[tuple[int, T]]:
+        index = start
+        async for item in aiter:
+            yield index, item
+            index += 1
+
+    async def askip(aiterable, n):
+        it = aiterable.__aiter__()
+        for _ in range(n):
+            try:
+                await it.__anext__()
+            except StopAsyncIteration:
+                return
+        async for item in it:
+            yield item
+
+    async def extract_gallery_images(submission: Submission) -> list[str]:
+        """
+        Retourne toutes les URLs d'images d'une submission Reddit.
+        Fonctionne même si l'API ne fournit pas media_metadata (cas NSFW).
+        """
+
+        images: list[str] = []
+
+        # 1) Si l'API fournit media_metadata → utiliser ça en priorité
+        if getattr(submission, "media_metadata", None):
+            print("Méthode 1")
+            images = []
+            for item in submission.media_metadata.values():
+                if "s" in item and "u" in item["s"]:
+                    url = item["s"]["u"]
+                    url = url.replace("&amp;", "&")
+                    images.append(url)
+            if images:
+                return images
+
+        # 2) Si c'est une image simple (pas galerie)
+        if submission.url.lower().endswith((".jpg", ".jpeg", ".png", ".gif", ".webp")):
+            return [submission.url]
+        return []
 
     async def main():
+        from .reddit_models import RedditSubmissionInfo
+        from .reddit_tools import resolve_submission
+
         reddit = asyncpraw.Reddit(
             client_id=REDDIT_ID, client_secret=REDDIT_SECRET, user_agent=REDDIT_AGENT
         )
-
         logger.info("Reddit ok.")
 
-        # List of subreddits
-        subreddits = await load_subreddits("redditbabes_test.txt")
+        # # List of subreddits
+        # subreddits = await load_subreddits("redditbabes_test.txt")
+        subreddits = [
+            "NSFWFashion",
+        ]
 
         for sub in subreddits:
             subreddit = await reddit.subreddit(sub, fetch=True)
             logger.info("fetching %s", sub)
             # Iterate on each submission
-            async for submission in subreddit.new(limit=2):
+            async for index, submission in aenumerate(askip(subreddit.new(limit=7), 6), start=1):
                 if submission.stickied:
                     continue
                 if submission.removed_by_category == "deleted":
                     logger.info("continue because deleted : %s", submission)
                     continue
+                submission = await resolve_submission(submission)
+
                 sub_object: RedditSubmissionInfo = RedditSubmissionInfo(submission=submission)
-                print(sub_object)
+                print(f"{index}: {sub_object}")
+                print(sub_object.title)
                 print(sub_object.is_younger())
                 print("---------------")
         await reddit.close()
+
+        interesting = [  # noqa: F841
+            "title",
+            "is_gallery",
+            "gallery_data",
+            "is_meta",
+            "is_self",
+            "is_video",
+            "media",
+            "media_embed",
+            "media_metadata",
+            "media_only",
+            "name",
+            "over_18",
+            "pinned",
+            "url",
+            "url_overridden_by_dest",
+        ]
+
+        # for attr in interesting:
+        #     value = getattr(submission, attr, None)
+        #     if attr == "media_metadata":
+        #         print(json.dumps(submission.media_metadata, indent=2, ensure_ascii=False))
+        #     else:
+        #         print("media_metadata : ")
+        #         print(f"{attr}: {value!r}")
+
+        # # await submission.load()
+        # # print(dir(submission))
 
     asyncio.run(main())

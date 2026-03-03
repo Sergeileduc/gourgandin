@@ -17,6 +17,7 @@ import asyncpraw
 from dotenv import load_dotenv
 
 from .reddit_models import RedditSubmissionInfo
+from .reddit_tools import resolve_submission
 
 logger = logging.getLogger(__name__)
 load_dotenv()
@@ -51,13 +52,13 @@ async def fetch_new_submissions(
         list[RedditSubmissionInfo]: Liste d'objets représentant les soumissions valides.
     """  # noqa: E501
     subreddit = await reddit.subreddit(subreddit_name, fetch=True)
-    logger.info("Fetching subreddit: %s", subreddit_name)
+    logger.info("🍆🍆🍆 Fetching subreddit: %s", subreddit_name)
 
     submissions = []
     async for submission in subreddit.new(limit=limit):
         if submission.stickied or submission.removed_by_category == "deleted":
             continue
-
+        submission = await resolve_submission(submission)
         info = RedditSubmissionInfo(submission=submission)
         submissions.append(info)
 

@@ -77,11 +77,16 @@ class RedditPoster:
                     if sub_object.image_url not in self.last_bot_messages and sub_object.is_younger(
                         hours=3
                     ):
+                        logger.info(
+                            "\t📨 On poste : %s / %s",
+                            sub_object.submission.id,
+                            sub_object.image_url,
+                        )
                         embed = sub_object.to_embed()
                         await self.channel.send(embed=embed)
                         await self.channel.send(sub_object.image_url)
                     else:
-                        logger.info("Déjà posté récemment, on skip : %s", sub_object.image_url)
+                        logger.info("\t✂️ Déjà posté récemment, on skip : %s", sub_object.image_url)
                 except RedditException as err:
                     logger.warning("Erreur sur le post '%s' : %s", sub_object.title, err)
         except Exception as e:
