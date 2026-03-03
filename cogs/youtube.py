@@ -94,14 +94,14 @@ def search_youtube(user_input: str, number: int) -> list[Result]:
     return out
 
 
-def youtube_top_link(user_input: str) -> TitleURL:
+def youtube_top_link(user_input: str) -> TitleURL | None:
     """Return title and url of 1st Youtube search.
 
     Args:
         user_input (str): user search on Youtube
 
     Returns:
-        TitleURL: title, url
+        TitleURL: title, url or None
 
     """
     results_list = search_youtube(user_input, number=1)
@@ -111,6 +111,7 @@ def youtube_top_link(user_input: str) -> TitleURL:
         return result.title, url
     except IndexError:
         logger.warning("No results found for %s", user_input)
+        return None
 
 
 def get_youtube_url(result: Result) -> str:
@@ -200,4 +201,4 @@ class Youtube(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(Youtube(bot))
-    logger.info("Youtube cog added")
+    logger.info("⚙️ Youtube cog added")

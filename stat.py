@@ -6,12 +6,12 @@ from dotenv import load_dotenv
 
 # Charger les variables d'environnement
 load_dotenv()
-TOKEN: str = os.getenv("GOURGANDIN_TOKEN")
+TOKEN: str | None = os.getenv("GOURGANDIN_TOKEN")
 GUILD_ID: int = int(os.getenv("GUILD_ID"))
 NSFW_BOT_CHANNEL: str = "nsfw-bot"
 
 
-def report_bars_percent(counter, top_n=20, charset="unicode"):
+def report_bars_percent(counter: Counter, top_n: int = 20, charset: str = "unicode") -> str:
     total = sum(counter.values())
     bars = []
     for word, count in counter.most_common(top_n):
@@ -22,12 +22,12 @@ def report_bars_percent(counter, top_n=20, charset="unicode"):
     return "\n".join(bars)
 
 
-async def analyze_channel(client: discord.Client):
+async def analyze_channel(client: discord.Client) -> None:
     guild = client.get_guild(GUILD_ID)
     nsfw_channel = discord.utils.get(guild.text_channels, name=NSFW_BOT_CHANNEL)
 
     first_words = []
-    async for msg in nsfw_channel.history(limit=None):
+    async for msg in nsfw_channel.history(limit=None):  # type: ignore[union-attr]
         for embed in msg.embeds:
             if embed.title:
                 word = embed.title.split()[0]
@@ -76,4 +76,7 @@ if __name__ == "__main__":
         await analyze_channel(client)
         await client.close()
 
-    client.run(TOKEN)
+    if TOKEN:
+        client.run(TOKEN)
+    else:
+        print("Please give a token")

@@ -61,4 +61,4 @@ class PronPics(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(PronPics(bot))
-    logger.info("PronPics cog added")
+    logger.info("⚙️ PronPics cog added")

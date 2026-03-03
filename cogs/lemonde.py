@@ -215,7 +215,7 @@ async def setup(bot):
         None
     """
     await bot.add_cog(LeMonde(bot))
-    logger.info("lemonde cog added")
+    logger.info("⚙️ Cog LeMonde added")
 
 
 # TESTING

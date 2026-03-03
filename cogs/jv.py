@@ -260,4 +260,4 @@ class JV(commands.Cog):
 async def setup(bot):
     "Add the cog to the bot."
     await bot.add_cog(JV(bot))
-    logger.info("Cog JV added")
+    logger.info("⚙️ Cog JV added")

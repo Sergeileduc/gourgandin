@@ -11,14 +11,19 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 
-# Parse a .env file and then load all the variables found as environment variables.
-load_dotenv()
-TOKEN: str = os.getenv("GOURGANDIN_TOKEN")
-GUILD_ID: int = int(os.getenv("GUILD_ID"))
-# Done
-
 # Logging
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Parse a .env file and then load all the variables found as environment variables.
+load_dotenv()
+TOKEN = os.getenv("GOURGANDIN_TOKEN")
+try:
+    GUILD_ID = int(os.getenv("GUILD_ID"))  # type: ignore[arg-type]
+except (ValueError, TypeError):
+    logger.error("GUILD_ID in your varenvs or .env must be integer !!!")
+# Done
+
 
 PREFIX: str = "!"
 NSFW_BOT_CHANNEL: str = "nsfw-bot"
@@ -29,10 +34,10 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-d", "--debug", help="change prefix to '?'", action="store_true")
 args = parser.parse_args()
 if args.debug:
-    logging.info("You are in debug mode.")
-    logging.info("Prefix is now '?'")
+    logger.info("You are in debug mode.")
+    logger.info("Prefix is now '?'")
     PREFIX = "?"
-    NSFW_BOT_CHANNEL: str = "test-bot"
+    NSFW_BOT_CHANNEL = "test-bot"
     logging.basicConfig(level=logging.DEBUG)
 
 
@@ -68,9 +73,9 @@ bot.cogs_loaded = False
 @bot.event
 async def on_ready():
     """Log in Discord."""
-    logging.info("Logged in as")
-    logging.info(bot.user.name)
-    logging.info(bot.user.id)
+    logger.info("🔐 Logged in as")
+    logger.info("🔐 %s", bot.user.name)
+    logger.info("🔐 %s", bot.user.id)
 
     if not bot.cogs_loaded:
         bot.guild = bot.get_guild(GUILD_ID)
@@ -84,7 +89,7 @@ async def on_ready():
 
         await bot.tree.sync()
         bot.cogs_loaded = True
-        logging.info("Cogs loaded and channels set.")
+        logger.info("Cogs loaded and channels set.")
 
 
 # I put the load_extensions back in on_ready, because the problem
@@ -106,7 +111,7 @@ async def on_ready():
 #     anything that waits for the websocket will deadlock, this includes things
 #     like :meth:`wait_for` and :meth:`wait_until_ready`.
 #     """
-#     logging.info("Setup_hook !!!")
+#     logger.info("Setup_hook !!!")
 #     for ext in cogs_ext_list:
 #         await bot.load_extension(ext)
 
@@ -114,5 +119,8 @@ async def on_ready():
 if __name__ == "__main__":
     if platform.system() == "Windows":
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    logging.info("New bot with discord.py version %s", discord.__version__)
-    bot.run(TOKEN)
+    logger.info("New bot with discord.py version %s", discord.__version__)
+    if TOKEN:
+        bot.run(TOKEN)
+    else:
+        logger.error("Please give a valid GOURGANDIN_TOKEN in your varenvs or .env file")

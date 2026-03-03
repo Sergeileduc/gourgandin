@@ -38,7 +38,7 @@ class Code(commands.Cog):
         self,
         interaction: discord.Interaction,
         choices: app_commands.Choice[str],
-    ):
+    ) -> None:
         codemodal = CodeModal(title="Entrez votre code")
         codemodal.lang = choices.value
         await interaction.response.send_modal(codemodal)
@@ -46,4 +46,4 @@ class Code(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(Code(bot))
-    logger.info("Cog code added")
+    logger.info("⚙️ Cog code added")

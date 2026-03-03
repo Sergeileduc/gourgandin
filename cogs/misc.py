@@ -40,4 +40,4 @@ class Misc(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(Misc(bot))
-    logger.info("Misc cog added")
+    logger.info("⚙️ Misc cog added")
