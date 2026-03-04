@@ -11,11 +11,17 @@ logger = logging.getLogger(__name__)
 
 
 class CodeModal(ui.Modal, title="My code modal"):
-    answer = ui.TextInput(label="Entrez votre code", required=True, style=discord.TextStyle.long)
+    def __init__(self, *, title: str, lang: str):
+        super().__init__(title=title)
+        self.lang = lang
+        self.answer: ui.TextInput = ui.TextInput(
+            label="Entrez votre code", required=True, style=discord.TextStyle.long
+        )
+        self.add_item(self.answer)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
         await interaction.response.send_message(
-            content=f"# Code {self.lang} :\n```{self.lang}\n{self.answer}```"
+            content=f"## Code {self.lang} :\n```{self.lang}\n{self.answer.value}```"
         )
 
 
@@ -25,7 +31,13 @@ class Code(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @app_commands.command(name="code")
+    @app_commands.command(
+        name="code",
+        description=(
+            "Coloration syntaxique .\n"
+            "Choisir un langage, faire entrée, un modal va s'ouvrir, collez le code."
+        ),
+    )
     @app_commands.choices(
         choices=[
             app_commands.Choice(name="Python", value="python"),
@@ -39,8 +51,7 @@ class Code(commands.Cog):
         interaction: discord.Interaction,
         choices: app_commands.Choice[str],
     ) -> None:
-        codemodal = CodeModal(title="Entrez votre code")
-        codemodal.lang = choices.value
+        codemodal = CodeModal(title="Entrez votre code", lang=choices.value)
         await interaction.response.send_modal(codemodal)
 
 
