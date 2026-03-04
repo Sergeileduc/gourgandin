@@ -8,7 +8,7 @@ allow-direct-references = true
 
 [project]
 name = "gourgandin"
-version = "1.0.0"
+version = "1.1.0"
 description = "Just a discord bot"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -24,7 +24,7 @@ dependencies = [
     "backoff",
     "bs4",
     "dateparser",
-    "discord.py>=2.7.0",
+    "discord.py>=2.7.1",
     "python-dotenv",
     "rich",
     "httpx",

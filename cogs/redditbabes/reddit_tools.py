@@ -13,7 +13,7 @@ def canonical_id_from_url(url: str) -> str | None:
     return m.group(1) if m else None
 
 
-async def resolve_submission(submission: Submission) -> Submission:
+async def resolve_submission(submission: "Submission") -> "Submission":
     """Retourne la vraie submission (ID canonique), si l'ID API est un alias."""
     await submission.load()
 
