@@ -33,7 +33,7 @@ dependencies = [
     # "lxml_html_clean",
     "google-api-python-client",
     # "python-web-tools-sl @ git+https://github.com/Sergeileduc/python-web-tools.git",
-    "lemonde-sl @ git+https://github.com/Sergeileduc/lemonde-sl.git@v2.3.1-pdfkit",
+    "lemonde-sl @ git+https://github.com/Sergeileduc/lemonde-sl.git@v2.4.3-weasyprint",
 ]
 
 # Classifiers PyPI (bonne pratique)

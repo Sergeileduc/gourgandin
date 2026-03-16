@@ -82,6 +82,8 @@ async def get_article(url: str) -> list[MyArticle]:
 
     EMAIL = os.getenv("LM_SL_EMAIL")
     PASSWORD = os.getenv("LM_SL_PASSWD")
+    MAX_IMGS: int = int(os.getenv("LM_SL_MAX_IMGS"))
+    logger.info("get_article called with url=%s and max imgs=%d", url, MAX_IMGS)
 
     if not EMAIL or not PASSWORD:
         raise RuntimeError("Missing LM_SL_EMAIL or LM_SL_PASSWD in environment")
@@ -91,6 +93,7 @@ async def get_article(url: str) -> list[MyArticle]:
             url=url,
             email=EMAIL,
             password=PASSWORD,
+            max_img=MAX_IMGS,
         )
     return my_pdf_list
 
@@ -157,11 +160,7 @@ class LeMonde(commands.Cog):
 
         await interaction.response.defer(ephemeral=False)
 
-        logger.info(
-            # f"Commande /lemonde appelée avec url={url}, mobile={mobile}, dark_mode={dark_mode}"
-            # )
-            f"Commande /lemonde appelée avec url={url}"
-        )
+        logger.info("Commande /lemonde appelée avec url=%s", url)
 
         await interaction.followup.send(
             # f"📄 Article: {url}\n📱 Mobile: {mobile}\n🌙 Mode sombre: {dark_mode}"
