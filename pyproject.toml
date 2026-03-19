@@ -8,7 +8,7 @@ allow-direct-references = true
 
 [project]
 name = "gourgandin"
-version = "1.1.0"
+version = "1.2.0"
 description = "Just a discord bot"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -34,6 +34,7 @@ dependencies = [
     "google-api-python-client",
     # "python-web-tools-sl @ git+https://github.com/Sergeileduc/python-web-tools.git",
     "lemonde-sl @ git+https://github.com/Sergeileduc/lemonde-sl.git@v2.4.3-weasyprint",
+    "psutil",
 ]
 
 # Classifiers PyPI (bonne pratique)

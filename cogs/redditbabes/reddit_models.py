@@ -1,4 +1,5 @@
 import logging
+import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
@@ -7,6 +8,10 @@ from asyncpraw.models import Submission
 
 logger = logging.getLogger(__name__)
 
+PREFIXES: list[str] = [
+    "Nines from the Mild side",
+]
+
 
 @dataclass
 class RedditSubmissionInfo:
@@ -14,6 +19,7 @@ class RedditSubmissionInfo:
     post_url: str = field(init=False)
     subreddit_name: str = field(init=False)
     title: str = field(init=False)
+    formated_title: str = field(init=False)
     author: str = field(init=False)
     is_album: bool = field(init=False)
     image_count: int = field(init=False)
@@ -95,9 +101,39 @@ class RedditSubmissionInfo:
                 url=self.post_url,
             ) from e
 
+    @staticmethod
+    def _extract_suffix_regex(s: str, prefix: str) -> str:
+        """Extract suffix
+
+        Args:
+            s (str): string to process
+            prefix (str): Prefix to delete.
+
+        Returns:
+            str: clean string without suffix
+
+        Example:
+            s = "Nines from the Mild side - Marli"
+            print(extract_suffix_regex(s, "Nines from the Mild side"))
+            # → Marli
+        """
+        pattern = rf"^{re.escape(prefix)}\s*-\s*(.+)$"
+        m = re.match(pattern, s)
+        return m.group(1) if m else s
+
+    def _clean_title(self) -> None:
+        """Make embed title.
+
+        Strip prefixes, and limit to 256 chars for Discord.
+        """
+        for prefix in PREFIXES:
+            new_title = self._extract_suffix_regex(self.title, prefix)
+        self.formated_title = new_title[:256]
+
     def to_embed(self) -> discord.Embed:
+        self._clean_title()
         embed = discord.Embed(
-            title=self.title[:256],
+            title=self.formated_title,
             description=self.subreddit_name,
             url=f"https://www.reddit.com{self.submission.permalink}",
         )
@@ -125,3 +161,40 @@ class RedditException(Exception):
             if (submission_id and url)
             else message
         )
+
+
+if __name__ == "__main__":
+    # s = "Nines from the Mild side - Marli"
+    # print(RedditSubmissionInfo._extract_suffix_regex(s, "Nines from the Mild side"))
+    # # → Marli
+
+    import asyncio
+    import os
+
+    import asyncpraw
+    from dotenv import load_dotenv
+
+    load_dotenv()
+    REDDIT_ID = os.getenv("REDDIT_ID")
+    REDDIT_SECRET = os.getenv("REDDIT_SECRET")
+    REDDIT_AGENT = os.getenv("REDDIT_AGENT")
+
+    async def main():
+        reddit = asyncpraw.Reddit(
+            client_id=REDDIT_ID, client_secret=REDDIT_SECRET, user_agent=REDDIT_AGENT
+        )
+        ID = "1rxb6re"
+
+        print(f"on essaye avec l'ID : {ID}")
+        submission = await reddit.submission(id=ID)
+        await submission.load()
+
+        info = RedditSubmissionInfo(submission=submission)
+
+        info._clean_title()
+        print(info.formated_title)
+
+        print("-----------------")
+        await reddit.close()
+
+    asyncio.run(main())

@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from lemonde_sl import LeMondeAsync, MyArticle
 
 from utils.decorators import async_retry
+from utils.tools import get_ram_usage_mb
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -87,7 +88,8 @@ async def get_article(url: str) -> list[MyArticle]:
 
     if not EMAIL or not PASSWORD:
         raise RuntimeError("Missing LM_SL_EMAIL or LM_SL_PASSWD in environment")
-
+    before = get_ram_usage_mb()
+    logger.info("RAM before render: %.1f MB", before)
     async with LeMondeAsync() as lm:
         my_pdf_list: list[MyArticle] = await lm.fetch_all_pdf(
             url=url,
@@ -95,6 +97,8 @@ async def get_article(url: str) -> list[MyArticle]:
             password=PASSWORD,
             max_img=MAX_IMGS,
         )
+    after = get_ram_usage_mb()
+    logger.info("RAM after render: %.1f MB (delta: %.1f MB)", after, after - before)
     return my_pdf_list
 
 

@@ -10,6 +10,8 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 
+from utils.tools import get_ram_usage_mb
+
 # Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -89,6 +91,8 @@ async def on_ready():
         await bot.tree.sync()
         bot.cogs_loaded = True
         logger.info("Cogs loaded and channels set.")
+        before = get_ram_usage_mb()
+        logger.info("RAM after on_ready: %.1f MB", before)
 
 
 # I put the load_extensions back in on_ready, because the problem

@@ -18,7 +18,7 @@ def report_bars_percent(counter: Counter, top_n: int = 20, charset: str = "unico
         pct = count / total * 100
         bar_len = int(pct / 0.3)
         bar_char = "█" if charset == "unicode" else "-"
-        bars.append(f"{word:<12} | {bar_char * bar_len:<12} {pct:5.1f}% ({count:>6})")
+        bars.append(f"{word.title():<12} | {bar_char * bar_len:<12} {pct:5.1f}% ({count:>6})")
     return "\n".join(bars)
 
 
@@ -26,28 +26,47 @@ async def analyze_channel(client: discord.Client) -> None:
     guild = client.get_guild(GUILD_ID)
     nsfw_channel = discord.utils.get(guild.text_channels, name=NSFW_BOT_CHANNEL)
 
-    first_words = []
+    first_words: list[str] = []
     async for msg in nsfw_channel.history(limit=None):  # type: ignore[union-attr]
         for embed in msg.embeds:
             if embed.title:
-                word = embed.title.split()[0]
+                word: str = embed.title.split()[0].lower()
                 first_words.append(word)
 
     counter = Counter(first_words)
 
+    # exclusions = {
+    #     "Amateur",
+    #     "Ass",
+    #     "Big",
+    #     "Boobs",
+    #     "Photographer",
+    #     "Photographer:",
+    #     "Selfportrait",
+    #     "[Mature",
+    #     "Mature",
+    #     "Beautiful",
+    #     "Cute",
+    #     "Babe",
+    #     "OnlyFans",
+    #     'Porn',
+    # }
     exclusions = {
-        "Amateur",
-        "Ass",
-        "Big",
-        "Boobs",
-        "Photographer",
-        "Photographer:",
-        "Selfportrait",
+        "amateur",
+        "babe",
+        "ass",
+        "beautiful",
+        "big",
+        "boobs",
+        "cute",
         "[Mature",
-        "Mature",
-        "Beautiful",
-        "Cute",
-        "Babe",
+        "[mature]",
+        "mature",
+        "onlyFans",
+        "photographer",
+        "photographer:",
+        "porn",
+        "selfportrait",
     }
     for word in exclusions:
         counter.pop(word, None)
@@ -56,7 +75,7 @@ async def analyze_channel(client: discord.Client) -> None:
 
     print("Top premiers mots d'embed :")
     for word, count in counter.most_common(20):
-        print(f"{word} → {count} fois")
+        print(f"{word.title()} → {count} fois")
 
     print("```")
     print(report_bars_percent(counter, top_n=20, charset="unicode"))

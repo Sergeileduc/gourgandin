@@ -1,9 +1,11 @@
 """File for some tools."""
 
 import logging
+import os
 
 import backoff
 import discord
+import psutil
 from discord.ext import commands
 from discord.utils import find as disc_find
 
@@ -151,3 +153,11 @@ def get_channel_by_name(
     if guild is None:
         return None
     return discord.utils.get(guild.text_channels, name=channel_name)
+
+
+#######
+# Monitoring
+######
+def get_ram_usage_mb() -> float:
+    process = psutil.Process(os.getpid())
+    return process.memory_info().rss / (1024 * 1024)

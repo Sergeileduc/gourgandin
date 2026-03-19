@@ -4,6 +4,8 @@ import logging
 
 from discord.ext import commands
 
+from utils.tools import get_ram_usage_mb
+
 logger = logging.getLogger(__name__)
 
 
@@ -36,6 +38,14 @@ class Misc(commands.Cog):
         """Just sing."""
         await ctx.send("https://media.tenor.com/De6M1HsMZSEAAAAC/mariah-carey.gif")
         logger.info("command !/sing was called.")
+
+    @commands.hybrid_command()
+    @commands.has_any_role("modo", "Admin")
+    async def ram(self, ctx: commands.Context) -> None:
+        """Get ram usage."""
+        ram = get_ram_usage_mb()
+        logger.info("RAM used: %.2f MB", ram)
+        await ctx.send(f"RAM actuelle : {ram:.1f} MB")
 
 
 async def setup(bot):
