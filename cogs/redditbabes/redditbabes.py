@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""Cog to get daily on bonjourmadame picture."""
+"""Cog to send content from various subreddits."""
 
 # Instructions :
 # put a file named redditbabes.txt in the directory
@@ -13,6 +13,8 @@ import asyncpraw  # pip install asyncpraw
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
+
+from gourgandin import NSFW_BOT_CHANNEL, NSFW_MANUAL_CHANNEL
 
 from .reddit_client import get_reddit_client
 from .reddit_poster import RedditPoster
@@ -108,24 +110,41 @@ class RedditGroup(app_commands.Group):
 class RedditBabes(commands.Cog):
     """Cog to get hourly babes from reddit and post them."""
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(
+        self, bot: commands.Bot, guild_id: int, bot_channel_name: str, manual_channel_name: str
+    ):
         self.bot = bot
+        self.guild_id = guild_id
+        self.bot_channel_name = bot_channel_name
+        self.manual_channel_name = manual_channel_name
         self.reddit = get_reddit_client()  # depuis reddit_client.py
-        self.poster = RedditPoster(
-            reddit=self.reddit,
-            channel=self.bot.nsfw_channel,  # type: ignore[attr-defined]
-            bot_user=self.bot.user,  # type: ignore[arg-type]
-        )  # depuis reddit_poster.py
-        self.babes.start()  # pylint: disable=no-member
+        self.poster = None  # pas encore prêt
 
         # 👉 Ajout du groupe slash commands au tree
         self.bot.tree.add_command(RedditGroup())
 
     @commands.Cog.listener()
+    async def on_ready(self):
+        guild = self.bot.get_guild(self.guild_id)
+        self.bot_channel = discord.utils.get(guild.text_channels, name=self.bot_channel_name)
+        self.manual_channel = discord.utils.get(guild.text_channels, name=self.manual_channel_name)
+
+        self.poster = RedditPoster(
+            reddit=self.reddit,
+            channel=self.bot_channel,
+            bot_user=self.bot.user,
+        )
+
+        # Démarrage de la task
+        if not self.babes.is_running():
+            self.babes.start()
+            logger.info("on_ready finished.")
+
+    @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent) -> None:
         """Send reddit in another channel on reaction."""
 
-        if payload.channel_id != self.bot.nsfw_channel.id:  # type: ignore[attr-defined]
+        if payload.channel_id != self.bot_channel.id:  # type: ignore[attr-defined]
             return
 
         # message: discord.Message = await self.bot.get_channel(payload.channel_id).fetch_message(
@@ -140,10 +159,10 @@ class RedditBabes(commands.Cog):
         # the previous message shoud be :
         desc_message: discord.Message = messages[0]
         # sending both messages
-        await self.bot.nsfw_channel_manual.send(  # type: ignore[attr-defined]
+        await self.manual_channel.send(  # type: ignore[attr-defined]
             content=f"{author} vous a partagé ceci :", embed=desc_message.embeds[0]
         )
-        await self.bot.nsfw_channel_manual.send(message.content)  # type: ignore[attr-defined]
+        await self.manual_channel.send(message.content)  # type: ignore[attr-defined]
 
     @tasks.loop(hours=1)  # checks the babes subreddit every hour
     async def babes(self) -> None:
@@ -167,7 +186,7 @@ class RedditBabes(commands.Cog):
     @babes.before_loop
     async def before_babes(self):
         """Intiliaze babes loop."""
-        await self.bot.wait_until_ready()
+        logger.info("before_babes OK")
 
 
 async def setup(bot):
@@ -179,12 +198,23 @@ async def setup(bot):
 
     Args:
         bot: The Discord bot instance to which the cog will be added.
+        guild_id (int)
+        nsfw_channel_name (str)
+        nsfw_manual_name (str)
 
     Returns:
         None
     """
-    await bot.add_cog(RedditBabes(bot))
-    logger.info("⚙️ Cog RedditBabes og added")
+    guild_id = int(os.getenv("GUILD_ID"))
+    await bot.add_cog(
+        RedditBabes(
+            bot,
+            guild_id=guild_id,
+            bot_channel_name=NSFW_BOT_CHANNEL,
+            manual_channel_name=NSFW_MANUAL_CHANNEL,
+        )
+    )
+    logger.info("⚙️ Cog RedditBabes added")
 
 
 # main is for debugging purpose
