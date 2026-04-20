@@ -77,12 +77,15 @@ class BonjourMadame(commands.Cog):
         self.bot = bot
         self.guild_id = guild_id
         self.nsfw_channel_name = nsfw_channel_name
-        self.bonjour_madame.start()  # pylint: disable=no-member
 
     @commands.Cog.listener()
     async def on_ready(self):
         guild = self.bot.get_guild(self.guild_id)
         self.nsfw_channel = discord.utils.get(guild.text_channels, name=self.nsfw_channel_name)
+
+        if not self.bonjour_madame.is_running():
+            self.bonjour_madame.start()
+            logger.info("on_ready finished.")
 
     # @tasks.loop(hours=24)
     @tasks.loop(
@@ -115,7 +118,8 @@ class BonjourMadame(commands.Cog):
     @bonjour_madame.before_loop
     async def before_bonjour_madame(self):
         """Intiliaze bonjour_madame loop."""
-        await self.bot.wait_until_ready()
+        # await self.bot.wait_until_ready()
+        logger.info("Bonjour loop OK")
         # await asyncio.sleep(41400)  # Wait 10hours 30min, to lauch at 10:30AM
 
 
