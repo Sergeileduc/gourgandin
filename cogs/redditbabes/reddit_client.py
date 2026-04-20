@@ -14,20 +14,18 @@ import logging
 import os
 
 import asyncpraw
-from dotenv import load_dotenv
 
 from .reddit_models import RedditSubmissionInfo
 from .reddit_tools import resolve_submission
 
 logger = logging.getLogger(__name__)
-load_dotenv()
 
 
 def get_reddit_client() -> asyncpraw.Reddit:
     """
     Initialise et retourne un client Reddit asyncpraw.
 
-    Les identifiants sont lus depuis les variables d'environnement chargées via dotenv.
+    Les identifiants sont lus depuis les variables d'environnement chargées via dotenv dans le main.
     """
     return asyncpraw.Reddit(
         client_id=os.environ["REDDIT_ID"],

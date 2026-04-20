@@ -1,4 +1,4 @@
-"""Miscs cog."""
+"""Adultdatalink cog."""
 
 import io
 import logging
@@ -7,11 +7,8 @@ import os
 import aiohttp
 import discord
 from discord.ext import commands
-from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
-
-load_dotenv()
 
 API_KEY = os.environ["API_ADULTDATA"]
 

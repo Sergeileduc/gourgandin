@@ -7,7 +7,6 @@ import os
 # from typing import Literal
 from discord import File, Interaction, Message, app_commands  # noqa: F401
 from discord.ext import commands  # noqa: F401
-from dotenv import load_dotenv
 from lemonde_sl import LeMondeAsync, MyArticle
 
 from utils.decorators import async_retry
@@ -78,9 +77,7 @@ JITTER = (0, 1)
 
 
 async def get_article(url: str) -> list[MyArticle]:
-    # Load environment variables (idempotent)
-    load_dotenv()
-
+    # Load_dotenv is executed once in the main bot (or in test file) but not here
     EMAIL = os.getenv("LM_SL_EMAIL")
     PASSWORD = os.getenv("LM_SL_PASSWD")
     MAX_IMGS: int = int(os.getenv("LM_SL_MAX_IMGS"))
