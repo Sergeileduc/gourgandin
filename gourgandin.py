@@ -66,10 +66,6 @@ cogs_ext_list = [
     "cogs.nsfwapi",
 ]
 
-# TODO : c'est un peu moche, setup_hook c'est quand même mieux que de charger dans on_ready,
-# mais on verra plus tard comment régler ça.
-bot.cogs_loaded = False
-
 
 @bot.event
 async def on_ready():
@@ -78,45 +74,31 @@ async def on_ready():
     logger.info("🔐 %s", bot.user.name)
     logger.info("🔐 %s", bot.user.id)
 
-    if not bot.cogs_loaded:
-        bot.guild = bot.get_guild(GUILD_ID)
-        bot.nsfw_channel = discord.utils.get(bot.guild.text_channels, name=NSFW_BOT_CHANNEL)
-        bot.nsfw_channel_manual = discord.utils.get(
-            bot.guild.text_channels, name=NSFW_MANUAL_CHANNEL
-        )  # noqa: E501
-
-        for ext in cogs_ext_list:
-            await bot.load_extension(ext)
-
-        await bot.tree.sync()
-        bot.cogs_loaded = True
-        logger.info("Cogs loaded and channels set.")
-        before = get_ram_usage_mb()
-        logger.info("RAM after on_ready: %.1f MB", before)
+    await bot.tree.sync()
+    logger.info("Cogs loaded and channels set.")
+    before = get_ram_usage_mb()
+    logger.info("RAM after on_ready: %.1f MB", before)
 
 
-# I put the load_extensions back in on_ready, because the problem
-# was that load_extensions was triggered before connection, so nsfw_channel wasn't initialised
-# TODO later.
-# @bot.event
-# async def setup_hook():
-#     """A coroutine to be called to setup the bot.
+@bot.event
+async def setup_hook():
+    """A coroutine to be called to setup the bot.
 
-#     To perform asynchronous setup after the bot is logged in but before
-#     it has connected to the Websocket, overwrite this coroutine.
+    To perform asynchronous setup after the bot is logged in but before
+    it has connected to the Websocket, overwrite this coroutine.
 
-#     This is only called once, in `login`, and will be called before
-#     any events are dispatched, making it a better solution than doing such
-#     setup in the `~discord.on_ready` event.
+    This is only called once, in `login`, and will be called before
+    any events are dispatched, making it a better solution than doing such
+    setup in the `~discord.on_ready` event.
 
-#     Warning :
-#     Since this is called *before* the websocket connection is made therefore
-#     anything that waits for the websocket will deadlock, this includes things
-#     like :meth:`wait_for` and :meth:`wait_until_ready`.
-#     """
-#     logger.info("Setup_hook !!!")
-#     for ext in cogs_ext_list:
-#         await bot.load_extension(ext)
+    Warning :
+    Since this is called *before* the websocket connection is made therefore
+    anything that waits for the websocket will deadlock, this includes things
+    like :meth:`wait_for` and :meth:`wait_until_ready`.
+    """
+    logger.info("Setup_hook !!!")
+    for ext in cogs_ext_list:
+        await bot.load_extension(ext)
 
 
 if __name__ == "__main__":
