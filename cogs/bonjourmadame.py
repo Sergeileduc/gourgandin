@@ -5,11 +5,15 @@ import datetime
 
 # from pytz import timezone
 import logging
+import os
 from pathlib import Path
 
+import discord
 from discord.ext import commands, tasks
 from httpx import AsyncClient
 from selectolax.parser import HTMLParser
+
+from gourgandin import NSFW_BOT_CHANNEL
 
 logger = logging.getLogger(__name__)
 
@@ -69,9 +73,16 @@ async def latest_madame():
 class BonjourMadame(commands.Cog):
     """Cog for the loop fetching BonjourMadame"""
 
-    def __init__(self, bot):
+    def __init__(self, bot, guild_id, nsfw_channel_name):
         self.bot = bot
+        self.guild_id = guild_id
+        self.nsfw_channel_name = nsfw_channel_name
         self.bonjour_madame.start()  # pylint: disable=no-member
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        guild = self.bot.get_guild(self.guild_id)
+        self.nsfw_channel = discord.utils.get(guild.text_channels, name=self.nsfw_channel_name)
 
     # @tasks.loop(hours=24)
     @tasks.loop(
@@ -84,8 +95,8 @@ class BonjourMadame(commands.Cog):
         url, title, book = await latest_madame()
         logger.info("try to post madame with %s / %s / %s", url, title, book)
         if url:
-            await self.bot.nsfw_channel.send(title)
-            await self.bot.nsfw_channel.send(url)
+            await self.nsfw_channel.send(title)
+            await self.nsfw_channel.send(url)
             logger.info("madame sent")
         if book:
             try:
@@ -121,7 +132,16 @@ async def setup(bot):
     Returns:
         None
     """
-    await bot.add_cog(BonjourMadame(bot))
+    guild_id = int(os.getenv("GUILD_ID"))
+    # nsfw_channel = os.getenv("NSFW_CHANNEL")
+    # nsfw_manual = os.getenv("NSFW_MANUAL_CHANNEL")
+    await bot.add_cog(
+        BonjourMadame(
+            bot,
+            guild_id=guild_id,
+            nsfw_channel_name=NSFW_BOT_CHANNEL,
+        )
+    )
     logger.info("BonjourMadame cog added")
 
 
