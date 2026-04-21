@@ -132,7 +132,8 @@ async def setup(bot):
 
     Args:
         bot: The Discord bot instance to which the cog will be added.
-
+        guild_id (int): main guild id
+        nsfw_channel_name (str): name to search for the nsfw channel used by bot
     Returns:
         None
     """

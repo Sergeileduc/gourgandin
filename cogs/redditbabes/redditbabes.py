@@ -117,25 +117,27 @@ class RedditBabes(commands.Cog):
         self.guild_id = guild_id
         self.bot_channel_name = bot_channel_name
         self.manual_channel_name = manual_channel_name
-        self.reddit = get_reddit_client()  # depuis reddit_client.py
-        self.poster = None  # pas encore prêt
+        self.reddit = get_reddit_client()  # from reddit_client.py
+        self.poster = None  # not ready yet
 
-        # 👉 Ajout du groupe slash commands au tree
+        # 👉 Add slash commands group to tree
         self.bot.tree.add_command(RedditGroup())
 
     @commands.Cog.listener()
     async def on_ready(self):
+        """Discord is ready → We can resolve channels."""
         guild = self.bot.get_guild(self.guild_id)
         self.bot_channel = discord.utils.get(guild.text_channels, name=self.bot_channel_name)
         self.manual_channel = discord.utils.get(guild.text_channels, name=self.manual_channel_name)
 
+        # Now we can instantiate the poster.
         self.poster = RedditPoster(
             reddit=self.reddit,
             channel=self.bot_channel,
             bot_user=self.bot.user,
         )
 
-        # Démarrage de la task
+        # Start the task
         if not self.babes.is_running():
             self.babes.start()
             logger.info("on_ready finished.")
@@ -144,12 +146,9 @@ class RedditBabes(commands.Cog):
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent) -> None:
         """Send reddit in another channel on reaction."""
 
-        if payload.channel_id != self.bot_channel.id:  # type: ignore[attr-defined]
+        if payload.channel_id != self.bot_channel.id:
             return
 
-        # message: discord.Message = await self.bot.get_channel(payload.channel_id).fetch_message(
-        #     payload.message_id
-        # )  # noqa: E501
         channel = self.bot.get_partial_messageable(payload.channel_id)
         message = await channel.fetch_message(payload.message_id)
 
@@ -159,10 +158,10 @@ class RedditBabes(commands.Cog):
         # the previous message shoud be :
         desc_message: discord.Message = messages[0]
         # sending both messages
-        await self.manual_channel.send(  # type: ignore[attr-defined]
+        await self.manual_channel.send(
             content=f"{author} vous a partagé ceci :", embed=desc_message.embeds[0]
         )
-        await self.manual_channel.send(message.content)  # type: ignore[attr-defined]
+        await self.manual_channel.send(message.content)
 
     @tasks.loop(hours=1)  # checks the babes subreddit every hour
     async def babes(self) -> None:
